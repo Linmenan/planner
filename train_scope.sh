@@ -1,7 +1,15 @@
 export PYTHONPATH=$PYTHONPATH:$(pwd)
-export NUPLAN_DATA_ROOT="/path/to/nuplan/dataset"
-export NUPLAN_MAPS_ROOT="/path/to/dataset/maps"
-export WS="/path/to/PlanScope"
+###
+ # @Author: CGB cai.guanbin@byd.com
+ # @Date: 2025-03-18 11:23:50
+ # @LastEditors: CGB cai.guanbin@byd.com
+ # @LastEditTime: 2025-03-25 20:33:48
+ # @FilePath: /PlanScope/train_scope.sh
+ # @Description: 这是默认设置,请设置`customMade`, 打开koroFileHeader查看配置 进行设置: https://github.com/OBKoro1/koro1FileHeader/wiki/%E9%85%8D%E7%BD%AE
+### 
+export NUPLAN_DATA_ROOT="/home/bydguikong/nuplan/dataset"
+export NUPLAN_MAPS_ROOT="/home/bydguikong/nuplan/dataset/maps"
+export WS="/home/bydguikong/nuplan"
 export NUPLAN_EXP_ROOT="$WS/exp"
 export HYDRA_FULL_ERROR=1
 

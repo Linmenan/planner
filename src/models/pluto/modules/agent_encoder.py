@@ -51,16 +51,67 @@ class AgentEncoder(nn.Module):
             torch.zeros_like(feat[:, :, 1:, ...]),
         )
 
+    # def forward(self, data):
+    #     T = self.hist_steps
+
+    #     # position = data["agent"]["position"][:, :, :T]
+    #     # heading = data["agent"]["heading"][:, :, :T]
+    #     # velocity = data["agent"]["velocity"][:, :, :T]
+    #     # shape = data["agent"]["shape"][:, :, :T]
+    #     # category = data["agent"]["category"].long()
+    #     # valid_mask = data["agent"]["valid_mask"][:, :, :T]
+
+    #     position = data[0][:, :, :T]
+    #     heading = data[1][:, :, :T]
+    #     velocity = data[2][:, :, :T]
+    #     shape = data[3][:, :, :T]
+    #     category = data[4].long()
+    #     valid_mask = data[5][:, :, :T]
+
+    #     heading_vec = self.to_vector(heading, valid_mask)
+    #     valid_mask_vec = valid_mask[..., 1:] & valid_mask[..., :-1]
+    #     agent_feature = torch.cat(
+    #         [
+    #             self.to_vector(position, valid_mask),
+    #             self.to_vector(velocity, valid_mask),
+    #             torch.stack([heading_vec.cos(), heading_vec.sin()], dim=-1),
+    #             shape[:, :, 1:],
+    #             valid_mask_vec.float().unsqueeze(-1),
+    #         ],
+    #         dim=-1,
+    #     )
+    #     bs, A, T, _ = agent_feature.shape
+    #     agent_feature = agent_feature.view(bs * A, T, -1)
+    #     valid_agent_mask = valid_mask.any(-1).flatten()
+
+    #     x_agent_tmp = self.history_encoder(
+    #         agent_feature[valid_agent_mask].permute(0, 2, 1).contiguous()
+    #     )
+    #     x_agent = torch.zeros(bs * A, self.dim, device=position.device)
+    #     x_agent[valid_agent_mask] = x_agent_tmp
+    #     x_agent = x_agent.view(bs, A, self.dim)
+
+    #     if not self.use_ego_history:
+    #         # ego_feature = data["current_state"][:, : self.state_channel]
+    #         ego_feature = data[31][:, : self.state_channel]
+    #         x_ego = self.ego_state_emb(ego_feature)
+    #         x_agent[:, 0] = x_ego
+
+    #     x_type = self.type_emb(category)
+
+    #     return x_agent + x_type
     def forward(self, data):
         T = self.hist_steps
 
-        position = data["agent"]["position"][:, :, :T]
-        heading = data["agent"]["heading"][:, :, :T]
-        velocity = data["agent"]["velocity"][:, :, :T]
-        shape = data["agent"]["shape"][:, :, :T]
-        category = data["agent"]["category"].long()
-        valid_mask = data["agent"]["valid_mask"][:, :, :T]
+        # 提取 agent 数据（前 T 帧）
+        position = data[0][:, :, :T]
+        heading = data[1][:, :, :T]
+        velocity = data[2][:, :, :T]
+        shape = data[3][:, :, :T]
+        category = data[4].to(torch.int32)
+        valid_mask = data[5][:, :, :T]
 
+        # 将 heading 转换为向量表示
         heading_vec = self.to_vector(heading, valid_mask)
         valid_mask_vec = valid_mask[..., 1:] & valid_mask[..., :-1]
         agent_feature = torch.cat(
@@ -74,21 +125,33 @@ class AgentEncoder(nn.Module):
             dim=-1,
         )
         bs, A, T, _ = agent_feature.shape
+        # 合并 batch 和 agent 维度，便于后续索引操作
         agent_feature = agent_feature.view(bs * A, T, -1)
-        valid_agent_mask = valid_mask.any(-1).flatten()
+        # valid_agent_mask: [bs*A]，表示每个 agent 是否至少有一个有效点
+        valid_agent_mask = valid_mask.any(-1).flatten()  
 
+        # 选出有效的 agent 特征，并做 transpose (通道维度放到中间)
         x_agent_tmp = self.history_encoder(
             agent_feature[valid_agent_mask].permute(0, 2, 1).contiguous()
         )
+        # x_agent_tmp 的形状为 [num_valid, self.dim]
+
+        # 构造全零张量 x_agent，形状 [bs*A, self.dim]
         x_agent = torch.zeros(bs * A, self.dim, device=position.device)
-        x_agent[valid_agent_mask] = x_agent_tmp
+        # 替换直接赋值 x_agent[valid_agent_mask] = x_agent_tmp 为 scatter 操作：
+        valid_idx = valid_agent_mask.nonzero(as_tuple=False).squeeze(1)  # [num_valid]
+        # 将 x_agent_tmp 按照 valid_idx 写入 x_agent
+        x_agent = x_agent.scatter(0, valid_idx.unsqueeze(1).expand(-1, self.dim), x_agent_tmp)
+        # 恢复形状为 [bs, A, self.dim]
         x_agent = x_agent.view(bs, A, self.dim)
 
+        # 对 ego 历史进行替换（如果不使用 ego 历史，则将第一 agent 置为当前状态）
         if not self.use_ego_history:
-            ego_feature = data["current_state"][:, : self.state_channel]
+            ego_feature = data[25][:, : self.state_channel]
             x_ego = self.ego_state_emb(ego_feature)
             x_agent[:, 0] = x_ego
 
+        # 处理类型嵌入
         x_type = self.type_emb(category)
 
         return x_agent + x_type

@@ -24,6 +24,26 @@ from .layers.mlp_layer import MLPLayer
 # no meaning, required by nuplan
 trajectory_sampling = TrajectorySampling(num_poses=8, time_horizon=8, interval_length=1)
 
+def print_structure(data, indent=0):
+    """
+    递归打印数据结构及其中张量的尺寸和数据类型。
+    """
+    prefix = " " * indent
+    if isinstance(data, dict):
+        for key, value in data.items():
+            print(f"{prefix}{key}:")
+            print_structure(value, indent=indent+4)
+    elif isinstance(data, (list, tuple)):
+        print(f"{prefix}{type(data).__name__} (length: {len(data)})")
+        for idx, item in enumerate(data):
+            print(f"{prefix}Index {idx}:")
+            print_structure(item, indent=indent+4)
+    elif torch.is_tensor(data):
+        # 同时打印形状、数据类型和设备信息
+        print(f"{prefix}Tensor, shape: {data.shape}, dtype: {data.dtype}, device: {data.device}")
+    else:
+        print(f"{prefix}{data} (type: {type(data)})")
+
 
 class PlanningModel(TorchModuleWrapper):
     def __init__(
@@ -127,6 +147,7 @@ class PlanningModel(TorchModuleWrapper):
         self.mvn_loss = mvn_loss
         if self.mvn_loss:
             self.mvn_decoder = MLPLayer(dim, 3 * dim, future_steps * 4)
+    
 
     def _init_weights(self, m):
         if isinstance(m, nn.Linear):
@@ -142,12 +163,34 @@ class PlanningModel(TorchModuleWrapper):
         elif isinstance(m, nn.Embedding):
             nn.init.normal_(m.weight, mean=0.0, std=0.02)
 
+    def custom_atan2(self, rot_sine, rot_cosine):
+        # 防止除数为 0
+        safe_rot_cosine = torch.where(rot_cosine == 0, torch.full_like(rot_cosine, 1e-6), rot_cosine)
+        # 计算基本的 arctan 值
+        rot = torch.atan(rot_sine / safe_rot_cosine)
+        # 对于第二象限：sine >= 0 且 cosine < 0，角度加 π
+        mask_yp = (rot_sine >= 0) & (rot_cosine < 0)
+        # 对于第三象限：sine < 0 且 cosine < 0，角度减 π
+        mask_yn = (rot_sine < 0) & (rot_cosine < 0)
+        # 根据掩码调整角度
+        rot = torch.where(mask_yp, rot + torch.pi, rot)
+        rot = torch.where(mask_yn, rot - torch.pi, rot)
+        return rot
+
     def forward(self, data):
-        agent_pos = data["agent"]["position"][:, :, self.history_steps - 1]
-        agent_heading = data["agent"]["heading"][:, :, self.history_steps - 1]
-        agent_mask = data["agent"]["valid_mask"][:, :, : self.history_steps]
-        polygon_center = data["map"]["polygon_center"]
-        polygon_mask = data["map"]["valid_mask"]
+        # print("data )))))))))))))))))))))))",data[6])
+        # print_structure(data)
+
+        # agent_pos = data["agent"]["position"][:, :, self.history_steps - 1]
+        # agent_heading = data["agent"]["heading"][:, :, self.history_steps - 1]
+        # agent_mask = data["agent"]["valid_mask"][:, :, : self.history_steps]
+        # polygon_center = data["map"]["polygon_center"]
+        # polygon_mask = data["map"]["valid_mask"]
+        agent_pos = data[0][:, :, self.history_steps - 1]
+        agent_heading = data[1][:, :, self.history_steps - 1]
+        agent_mask = data[5][:, :, : self.history_steps]
+        polygon_center = data[9]
+        polygon_mask = data[15]
 
         bs, A = agent_pos.shape[0:2]
 
@@ -159,6 +202,9 @@ class PlanningModel(TorchModuleWrapper):
         agent_key_padding = ~(agent_mask.any(-1))
         polygon_key_padding = ~(polygon_mask.any(-1))
         key_padding_mask = torch.cat([agent_key_padding, polygon_key_padding], dim=-1)
+        # print(f"agent_key_padding.shape: {agent_key_padding.shape}")
+        # print(f"polygon_key_padding.shape: {polygon_key_padding.shape}")
+        # print(f"key_padding_mask.shape: {key_padding_mask.shape}")
 
         x_agent = self.agent_encoder(data)
         x_polygon = self.map_encoder(data)
@@ -170,28 +216,34 @@ class PlanningModel(TorchModuleWrapper):
         pos_embed = self.pos_emb(pos)
 
         key_padding_mask = torch.cat([key_padding_mask, static_key_padding], dim=-1)
+        # print(f"static_key_padding.shape: {static_key_padding.shape}")
+        # print(f"key_padding_mask.shape: {key_padding_mask.shape}")
         x = x + pos_embed
 
         for blk in self.encoder_blocks:
             x = blk(x, key_padding_mask=key_padding_mask, return_attn_weights=False)
         x = self.norm(x)
-
         prediction = self.agent_predictor(x[:, 1:A])
 
-        ref_line_available = data["reference_line"]["position"].shape[1] > 0
+        # ref_line_available = data["reference_line"]["position"].shape[1] > 0
+        ref_line_available = data[16].shape[1] > 0
 
         if ref_line_available:
             trajectory, probability, details = self.planning_decoder(
                 data, {"enc_emb": x, "enc_key_padding_mask": key_padding_mask}
-            )
+                )
         else:
             trajectory, probability = None, None
             details = None
 
+        # trajectory, probability, details = self.planning_decoder(
+        #     data, {"enc_emb": x, "enc_key_padding_mask": key_padding_mask})
+        # trajectory, probability = self.planning_decoder(
+        #     data, {"enc_emb": x, "enc_key_padding_mask": key_padding_mask})
         out = {
-            "trajectory": trajectory,
-            "probability": probability,  # (bs, R, M)
-            "prediction": prediction,  # (bs, A-1, T, 2)
+            "trajectory": trajectory,  # out0 多模态轨迹（x,y,cos,sin,vx,vy）
+            "probability": probability,  # out1 (bs, R, M) 多模态轨迹打分
+            "prediction": prediction,  # out 2 (bs, A-1, T, 2) Agent运动预测（x,y,cos,sin,vx,vy） 
             "details": details, 
         }
 
@@ -221,19 +273,20 @@ class PlanningModel(TorchModuleWrapper):
             output_prediction = torch.cat(
                 [
                     prediction[..., :2] + agent_pos[:, 1:A, None],
-                    torch.atan2(prediction[..., 3], prediction[..., 2]).unsqueeze(-1)
+                    self.custom_atan2(prediction[..., 3], prediction[..., 2]).unsqueeze(-1)
                     + agent_heading[:, 1:A, None, None],
                     prediction[..., 4:6],
                 ],
                 dim=-1,
             )
-            out["output_prediction"] = output_prediction
+            out["output_prediction"] = output_prediction # out 3 Agent运动预测（x,y,yaw,vx,vy） 
 
             if trajectory is not None:
-                r_padding_mask = ~data["reference_line"]["valid_mask"].any(-1)
+                # r_padding_mask = ~data["reference_line"]["valid_mask"].any(-1)
+                r_padding_mask = ~data[24].any(-1)
                 probability.masked_fill_(r_padding_mask.unsqueeze(-1), -1e6)
 
-                angle = torch.atan2(trajectory[..., 3], trajectory[..., 2])
+                angle = self.custom_atan2(trajectory[..., 3], trajectory[..., 2])
                 out_trajectory = torch.cat(
                     [trajectory[..., :2], angle.unsqueeze(-1)], dim=-1
                 )
@@ -244,8 +297,8 @@ class PlanningModel(TorchModuleWrapper):
                     torch.arange(bs), flattened_probability.argmax(-1)
                 ]
 
-                out["output_trajectory"] = best_trajectory
-                out["candidate_trajectories"] = out_trajectory
+                out["output_trajectory"] = best_trajectory # out 4 多模态轨迹（x,y,yaw）
+                out["candidate_trajectories"] = out_trajectory # out 5 打分最高轨迹（x,y,yaw）
             else:
                 # TODO (1,0,0) originally
                 out["output_trajectory"] = out["output_ref_free_trajectory"]
@@ -253,5 +306,13 @@ class PlanningModel(TorchModuleWrapper):
                 out["candidate_trajectories"] = torch.zeros(
                     1, 1, 1, self.future_steps, 3
                 )
+
+
+        # for key,val in out.items():
+        #     if key=="details":
+        #         for i in val:
+        #             print(f"i = {i}, value.shape = {type(i)}")
+        #     else:
+        #         print(f"key = {key}, value.shape = {type(val)}")
 
         return out

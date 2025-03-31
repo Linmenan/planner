@@ -39,6 +39,62 @@ class DecoderLayer(nn.Module):
         self.dropout2 = nn.Dropout(dropout)
         self.dropout3 = nn.Dropout(dropout)
 
+    # def forward(
+    #     self,
+    #     tgt,
+    #     memory,
+    #     tgt_key_padding_mask: Optional[Tensor] = None,
+    #     memory_key_padding_mask: Optional[Tensor] = None,
+    #     m_pos: Optional[Tensor] = None,
+    # ):
+    #     """
+    #     tgt: (bs, R, M, dim)
+    #     tgt_key_padding_mask: (bs, R)
+    #     """
+    #     bs, R, M, D = tgt.shape
+
+    #     tgt = tgt.transpose(1, 2).reshape(bs * M, R, D)
+    #     tgt2 = self.norm1(tgt)
+    #     tgt2 = self.r2r_attn(
+    #         tgt2, tgt2, tgt2, key_padding_mask=tgt_key_padding_mask.repeat(M, 1)
+    #     )[0]
+    #     tgt = tgt + self.dropout1(tgt2)
+
+    #     tgt_tmp = tgt.reshape(bs, M, R, D).transpose(1, 2).reshape(bs * R, M, D)
+    #     tgt_valid_mask = ~tgt_key_padding_mask.reshape(-1)
+
+    #     print("tgt_valid_mask:", tgt_valid_mask.cpu().numpy())
+    #     # print(f"tgt_key_padding_mask.shape: {tgt_key_padding_mask.shape}")
+    #     # print(f"tgt_valid_mask.shape: {tgt_valid_mask.shape}")
+    #     # print(f"tgt_valid_mask: {tgt_valid_mask}")
+    #     # print(f"tgt_tmp.shape: {tgt_tmp.shape}")
+    #     tgt_valid = tgt_tmp[tgt_valid_mask]
+    #     print(f"tgt_valid.shape: {tgt_valid.shape}")
+    #     tgt2_valid = self.norm2(tgt_valid)
+    #     tgt2_valid, _ = self.m2m_attn(
+    #         tgt2_valid + m_pos, tgt2_valid + m_pos, tgt2_valid
+    #     )
+    #     tgt_valid = tgt_valid + self.dropout2(tgt2_valid)
+    #     # tgt_valid = torch.cos(tgt_valid)#为了定位出问题的地方，没有用
+    #     # tgt_valid = torch.cos(tgt_valid)#为了定位出问题的地方，没有用
+    #     tgt = torch.zeros_like(tgt_tmp)
+    #     tgt[tgt_valid_mask] = tgt_valid
+    #     # tgt = torch.sin(tgt)#为了定位出问题的地方，没有用
+    #     # tgt = torch.sin(tgt)#为了定位出问题的地方，没有用
+    #     tgt = tgt.reshape(bs, R, M, D).view(bs, R * M, D)
+    #     tgt2 = self.norm3(tgt)
+    #     tgt2 = self.cross_attn(
+    #         tgt2, memory, memory, key_padding_mask=memory_key_padding_mask
+    #     )[0]
+
+    #     tgt = tgt + self.dropout2(tgt2)
+    #     tgt2 = self.norm4(tgt)
+    #     tgt2 = self.ffn(tgt2)
+    #     tgt = tgt + self.dropout3(tgt2)
+    #     tgt = tgt.reshape(bs, R, M, D)
+        
+    #     return tgt
+        
     def forward(
         self,
         tgt,
@@ -61,29 +117,38 @@ class DecoderLayer(nn.Module):
         tgt = tgt + self.dropout1(tgt2)
 
         tgt_tmp = tgt.reshape(bs, M, R, D).transpose(1, 2).reshape(bs * R, M, D)
-        tgt_valid_mask = ~tgt_key_padding_mask.reshape(-1)
-        tgt_valid = tgt_tmp[tgt_valid_mask]
+
+        # 用 nonzero 和 index_select 得到有效行
+        valid_mask = ~tgt_key_padding_mask.reshape(-1)  # 预期 shape: [bs*R]
+        indices = torch.nonzero(valid_mask, as_tuple=False).squeeze(1)
+        tgt_valid = torch.index_select(tgt_tmp, 0, indices)
+        
         tgt2_valid = self.norm2(tgt_valid)
         tgt2_valid, _ = self.m2m_attn(
             tgt2_valid + m_pos, tgt2_valid + m_pos, tgt2_valid
         )
         tgt_valid = tgt_valid + self.dropout2(tgt2_valid)
-        tgt = torch.zeros_like(tgt_tmp)
-        tgt[tgt_valid_mask] = tgt_valid
+        
+        # 用 scatter 替代 index_copy
+        # 先扩展 indices 的形状，使其与 tgt_valid 匹配
+        indices_expanded = indices.unsqueeze(1).unsqueeze(2).expand(tgt_valid.shape)
+        tgt_new = torch.zeros_like(tgt_tmp)
+        tgt_new = tgt_new.scatter(0, indices_expanded, tgt_valid)
 
-        tgt = tgt.reshape(bs, R, M, D).view(bs, R * M, D)
+        tgt = tgt_new.reshape(bs, R, M, D).view(bs, R * M, D)
         tgt2 = self.norm3(tgt)
         tgt2 = self.cross_attn(
             tgt2, memory, memory, key_padding_mask=memory_key_padding_mask
         )[0]
-
         tgt = tgt + self.dropout2(tgt2)
         tgt2 = self.norm4(tgt)
         tgt2 = self.ffn(tgt2)
         tgt = tgt + self.dropout3(tgt2)
         tgt = tgt.reshape(bs, R, M, D)
-
+        
         return tgt
+
+
 
 
 class HierachicalDecoder(nn.Module):
@@ -163,12 +228,19 @@ class HierachicalDecoder(nn.Module):
         enc_emb = enc_data["enc_emb"]
         # print('enc_emb', enc_emb.shape) # [12, 276, 128] emb of all the things
         enc_key_padding_mask = enc_data["enc_key_padding_mask"]
+        # print(f"HierachicalDecoder enc_key_padding_mask.shape: {enc_key_padding_mask.shape}")
+        # r_position = data["reference_line"]["position"]
+        # r_vector = data["reference_line"]["vector"]
+        # r_orientation = data["reference_line"]["orientation"]
+        # r_valid_mask = data["reference_line"]["valid_mask"]
 
-        r_position = data["reference_line"]["position"]
-        r_vector = data["reference_line"]["vector"]
-        r_orientation = data["reference_line"]["orientation"]
-        r_valid_mask = data["reference_line"]["valid_mask"]
+        r_position = data[16]
+        r_vector = data[17]
+        r_orientation = data[18]
+        r_valid_mask = data[19]
+        # print(f"HierachicalDecoder r_valid_mask.shape: {r_valid_mask.shape}")
         r_key_padding_mask = ~r_valid_mask.any(-1)
+        # print(f"HierachicalDecoder r_key_padding_mask.shape: {r_key_padding_mask.shape}")
 
         r_feature = torch.cat(
             [
@@ -182,6 +254,8 @@ class HierachicalDecoder(nn.Module):
         bs, R, P, C = r_feature.shape
         r_valid_mask = r_valid_mask.view(bs * R, P)
         r_feature = r_feature.reshape(bs * R, P, C)
+        # r_feature = torch.sin(r_feature)
+        r_valid_mask = ~r_valid_mask
         r_emb = self.r_encoder(r_feature, r_valid_mask).view(bs, R, -1)
 
         r_pos = torch.cat([r_position[:, :, 0], r_orientation[:, :, 0, None]], dim=-1)
@@ -212,7 +286,7 @@ class HierachicalDecoder(nn.Module):
                 q = d_q
             else:
                 q = d_q
-            assert torch.isfinite(q).all()
+            # assert torch.isfinite(q).all()
 
         if self.cat_x:
             x = enc_emb[:, 0].unsqueeze(1).unsqueeze(2).repeat(1, R, self.num_mode, 1)

@@ -22,6 +22,9 @@ from nuplan.planning.script.utils import (
 from nuplan.planning.simulation.planner.abstract_planner import AbstractPlanner
 from omegaconf import DictConfig, OmegaConf
 
+import torch
+torch.cuda.empty_cache()
+
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
@@ -128,7 +131,8 @@ def main(cfg: DictConfig) -> None:
     assert (
         cfg.simulation_log_main_path is None
     ), "Simulation_log_main_path must not be set when running simulation."
-
+    # print("cfg ,,,,,,,,,,,,,,,,",cfg)
+    # print(cfg["planner"])
     run_simulation(cfg=cfg)
 
     if is_s3_path(Path(cfg.output_dir)):

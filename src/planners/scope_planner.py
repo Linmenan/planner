@@ -7,6 +7,7 @@ import numpy as np
 import numpy.typing as npt
 import shapely
 import torch
+
 from nuplan.common.actor_state.ego_state import EgoState
 from nuplan.planning.scenario_builder.abstract_scenario import AbstractScenario
 from nuplan.planning.simulation.observation.observation_type import (
@@ -29,12 +30,27 @@ from nuplan.planning.training.modeling.types import FeaturesType
 from scipy.special import softmax
 
 from src.feature_builders.nuplan_scenario_render import NuplanScenarioRender
-
+from src.features.pluto_feature import PlutoFeature
 from ..post_processing.emergency_brake import EmergencyBrake
 from ..post_processing.trajectory_evaluator import TrajectoryEvaluator
 from ..scenario_manager.scenario_manager import ScenarioManager
 from .ml_planner_utils import global_trajectory_to_states, load_checkpoint
 
+
+def save_train_data(data, file_path):
+    # 如果文件存在，则加载已有数据（预期为列表），否则创建一个空列表
+    if os.path.exists(file_path):
+        existing_data = torch.load(file_path)
+        # 如果加载的数据不是列表，则转换为列表（例如之前保存的可能直接是一个张量）
+        if not isinstance(existing_data, list):
+            existing_data = [existing_data]
+    else:
+        existing_data = []
+
+    # 将当前的 point_position 追加到列表中
+    existing_data.append(data)
+    # 保存列表到文件中
+    torch.save(existing_data, file_path)
 
 class ScopePlanner(AbstractPlanner):
     requires_scenario: bool = True
@@ -65,11 +81,13 @@ class ScopePlanner(AbstractPlanner):
         self._scenario = scenario
         if use_gpu:
             self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+            # self.device = torch.device("cpu" if torch.cuda.is_available() else "cpu")
         else:
             self.device = torch.device("cpu")
         self._use_prediction = use_prediction
 
         self._planner = planner
+        # print("planner = ",planner)
         self._planner_feature_builder = planner.get_list_of_required_feature()[0]
         self._planner_ckpt = planner_ckpt
 
@@ -132,7 +150,6 @@ class ScopePlanner(AbstractPlanner):
         self._planner = self._planner.to(self.device)
 
         self._initialization = initialization
-
         self._scenario_manager = ScenarioManager(
             map_api=initialization.map_api,
             ego_state=None,
@@ -167,8 +184,13 @@ class ScopePlanner(AbstractPlanner):
         ego_state = current_input.history.ego_states[-1]
         self._scenario_manager.update_ego_state(ego_state)
         self._scenario_manager.update_drivable_area_map()
-
+        # planning_trajectory = []
         planning_trajectory = self._run_planning_once(current_input)
+        # try:
+        #     self.ckpt2onnx()# 可能出错的代码
+        # except Exception as e:
+        #     print(f"发生错误: {e}, 跳过此部分")
+        
 
         self._inference_runtimes.append(time.perf_counter() - start_time)
 
@@ -184,8 +206,80 @@ class ScopePlanner(AbstractPlanner):
         planner_feature_torch = planner_feature.collate(
             [planner_feature.to_feature_tensor()]
         ).to_device(self.device)
+        # 打印输入特征维度
+        # print("YYYYYYYYYYYYYYYYYYYYYYYYYYYYYplanner_feature_torch content:", planner_feature_torch)
+        # print("YYYYYYYYYYYYYYYYYYYYYYYYYYYYYplanner_feature_torch content:", planner_feature_torch.data["agent"])
+        # print("YYYYYYYYYYYYYYYYYYYYYYYYYYYYY")
+        # 打印字典中的每个张量的维度
+        # if isinstance(planner_feature_torch.data, dict):
+        #     print("planner_feature_torch content:")
+        #     for key, value in planner_feature_torch.data.items():
+        #         if isinstance(value, torch.Tensor):
+        #             print(f"Key: {key}, Shape: {value.shape}")
+        #         else:
+        #             if isinstance(planner_feature_torch.data[key], dict):
+        #                 for k, v in planner_feature_torch.data[key].items():
+        #                     if isinstance(v, torch.Tensor):
+        #                         print(f"{key}.Key: {k}, Shape: {v.shape}")
+        #                     else:
+        #                         print(f"{key}.Key: {k}, Non-tensor value")
+    
+        # return 1
+        # print("~~~~~~~~~~~~~~current_input!!!!!!!!!!!!!!!!!!!!!!!",type(current_input))
 
-        out = self._planner.forward(planner_feature_torch.data)
+        
+        save_train_data(
+            planner_feature.data["map"]["point_position"],
+            "/home/bydguikong/yy_ws/PlanScope/map_data.pt")
+        save_train_data(
+            planner_feature.data["map"]["valid_mask"],
+            "/home/bydguikong/yy_ws/PlanScope/map_mask_data.pt")
+        
+        save_train_data(
+            planner_feature.data["agent"]["position"],
+            "/home/bydguikong/yy_ws/PlanScope/agent_position_data.pt")
+        save_train_data(
+            planner_feature.data["agent"]["valid_mask"],
+            "/home/bydguikong/yy_ws/PlanScope/agent_mask_data.pt")
+        
+        # torch.save(planner_feature.data["map"]["point_position"], "/home/bydguikong/yy_ws/PlanScope/map_data.pt")
+        # print("Point Postiton: >>>>>>>>>>>>>>>>>====", planner_feature.data["map"]["point_position"])
+        # print(planner_feature.data["map"]["point_position"].shape)
+        data = [
+            planner_feature_torch.data['agent']['position'],  #0
+            planner_feature_torch.data['agent']['heading'],#1
+            planner_feature_torch.data['agent']['velocity'],#2
+            planner_feature_torch.data['agent']['shape'],#3
+            planner_feature_torch.data['agent']['category'],#4
+            planner_feature_torch.data['agent']['valid_mask'],#5
+
+            planner_feature_torch.data['map']['point_position'],#6
+            planner_feature_torch.data['map']['point_vector'],#7
+            planner_feature_torch.data['map']['point_orientation'],#8
+            planner_feature_torch.data['map']['polygon_center'],#9
+            planner_feature_torch.data['map']['polygon_type'],#10
+            planner_feature_torch.data['map']['polygon_on_route'],#11
+            planner_feature_torch.data['map']['polygon_tl_status'],#12
+            planner_feature_torch.data['map']['polygon_has_speed_limit'],#13
+            planner_feature_torch.data['map']['polygon_speed_limit'],#14
+            planner_feature_torch.data['map']['valid_mask'],#15
+
+            planner_feature_torch.data['reference_line']['position'],#16
+            planner_feature_torch.data['reference_line']['vector'],#17
+            planner_feature_torch.data['reference_line']['orientation'],#18
+            planner_feature_torch.data['reference_line']['valid_mask'],#19
+
+            planner_feature_torch.data['static_objects']['position'],#20
+            planner_feature_torch.data['static_objects']['heading'],#21
+            planner_feature_torch.data['static_objects']['shape'],#22
+            planner_feature_torch.data['static_objects']['category'],#23
+            planner_feature_torch.data['static_objects']['valid_mask'],#24
+
+            planner_feature_torch.data['current_state'],#25
+        ]
+
+        out = self._planner.forward(data)
+        # out = self._planner.forward(planner_feature_torch.data)
         candidate_trajectories = (
             out["candidate_trajectories"][0].cpu().numpy().astype(np.float64)
         )
@@ -457,3 +551,132 @@ class ScopePlanner(AbstractPlanner):
             print("\n video saved to ", self.video_dir / "video.mp4\n")
 
         return report
+        
+    def ckpt2onnx(self,onnx_output_path:str = "/home/bydguikong/yy_ws/PlanScope/onnx/model.onnx"):
+        device = self.device
+        print("YYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYY  ckpt2onnx YYYYYYYYYYYYYYYYYYYYYY")
+        model = self._planner
+        
+        # self._planner.eval()
+        # 创建虚拟输入数据 (dummy_input)
+        # dummy_input = []
+        # 1. 扁平化后的 dummy_input（列表顺序必须固定）
+        dummy_input = [
+            # agent 部分
+            torch.randn(1, 1, 21, 2, device=device),            # 0: agent.position
+            torch.randn(1, 1, 21, device=device),                # 1: agent.heading
+            torch.randn(1, 1, 21, 2, device=device),             # 2: agent.velocity
+            torch.randn(1, 1, 21, 2, device=device),             # 3: agent.shape
+            torch.randint(0, 2, (1, 1), device=device),          # 4: agent.category
+            torch.randint(0, 2, (1, 1, 21), dtype=torch.bool, device=device),  # 5: agent.valid_mask
+            torch.randn(1, 1, 0, 3, device=device),              # 6: agent.target
+
+            # map 部分
+            torch.randn(1, 178, 3, 20, 2, device=device),         # 7: map.point_position
+            torch.randn(1, 178, 3, 20, 2, device=device),         # 8: map.point_vector
+            torch.randn(1, 178, 3, 20, device=device),            # 9: map.point_orientation
+            torch.randn(1, 178, 3, device=device),                # 10: map.point_side
+            torch.randn(1, 178, 3, device=device),                # 11: map.polygon_center
+            torch.randn(1, 178, 2, device=device),                # 12: map.polygon_position
+            torch.randn(1, 178, device=device),                   # 13: map.polygon_orientation
+            torch.randint(0, 3, (1, 178), device=device),         # 14: map.polygon_type
+            torch.randint(0, 2, (1, 178), dtype=torch.bool, device=device),  # 15: map.polygon_on_route
+            torch.randint(0, 1, (1, 178), dtype=torch.int8, device=device),  # 16: map.polygon_tl_status
+            torch.randint(0, 2, (1, 178), dtype=torch.bool, device=device),  # 17: map.polygon_has_speed_limit
+            torch.randn(1, 178, device=device),                   # 18: map.polygon_speed_limit
+            torch.randint(0, 1000, (1, 178), dtype=torch.int32, device=device),  # 19: map.polygon_road_block_id
+            torch.randint(0, 2, (1, 178, 20), dtype=torch.bool, device=device),  # 20: map.valid_mask
+
+            # reference_line 部分
+            torch.randn(1, 1, 120, 2, device=device),             # 21: reference_line.position
+            torch.randn(1, 1, 120, 2, device=device),             # 22: reference_line.vector
+            torch.randn(1, 1, 120, device=device),                # 23: reference_line.orientation
+            torch.randint(0, 2, (1, 1, 120), dtype=torch.bool, device=device), # 24: reference_line.valid_mask
+            torch.randn(1, 1, 8, 2, device=device),               # 25: reference_line.future_projection
+
+            # static_objects 部分
+            torch.randn(1, 12, 2, device=device),                 # 26: static_objects.position
+            torch.randn(1, 12, device=device),                    # 27: static_objects.heading
+            torch.randn(1, 12, 2, device=device),                 # 28: static_objects.shape
+            torch.randint(0, 1, (1, 12), device=device),          # 29: static_objects.category
+            torch.randint(0, 2, (1, 12), dtype=torch.bool, device=device),  # 30: static_objects.valid_mask
+
+            # 其他部分
+            torch.randn(1, 7, device=device),                     # 31: current_state
+            torch.randn(1, 2, device=device),                     # 32: origin
+            torch.randn(1, device=device),                        # 33: angle
+        ]
+
+        # 为方便 ONNX 导出，定义每个输入的名称（顺序与 dummy_input 一一对应）
+        input_names = [
+            "agent.position", "agent.heading", "agent.velocity", "agent.shape",
+            "agent.category", "agent.valid_mask", "agent.target",
+            "map.point_position", "map.point_vector", "map.point_orientation", "map.point_side",
+            "map.polygon_center", "map.polygon_position", "map.polygon_orientation",
+            "map.polygon_type", "map.polygon_on_route", "map.polygon_tl_status",
+            "map.polygon_has_speed_limit", "map.polygon_speed_limit", "map.polygon_road_block_id",
+            "map.valid_mask",
+            "reference_line.position", "reference_line.vector", "reference_line.orientation",
+            "reference_line.valid_mask", "reference_line.future_projection",
+            "static_objects.position", "static_objects.heading", "static_objects.shape",
+            "static_objects.category", "static_objects.valid_mask",
+            "current_state", "origin", "angle"
+        ]
+        # 3. 定义 dynamic_axes
+        # 这里只设置可能动态变化的轴：batch、agent数量、地图元素数量、参考线采样点数、静态物体数量等
+        dynamic_axes = {
+            "agent.position": {0: "batch_size", 1: "num_agents"},
+            "agent.heading": {0: "batch_size", 1: "num_agents"},
+            "agent.velocity": {0: "batch_size", 1: "num_agents"},
+            "agent.shape": {0: "batch_size", 1: "num_agents"},
+            "agent.category": {0: "batch_size", 1: "num_agents"},
+            "agent.valid_mask": {0: "batch_size", 1: "num_agents"},
+            "agent.target": {0: "batch_size", 1: "num_agents", 2: "num_targets"},
+
+            "map.point_position": {0: "batch_size", 1: "num_map_elements"},
+            "map.point_vector": {0: "batch_size", 1: "num_map_elements"},
+            "map.point_orientation": {0: "batch_size", 1: "num_map_elements"},
+            "map.point_side": {0: "batch_size", 1: "num_map_elements"},
+            "map.polygon_center": {0: "batch_size", 1: "num_map_elements"},
+            "map.polygon_position": {0: "batch_size", 1: "num_map_elements"},
+            "map.polygon_orientation": {0: "batch_size", 1: "num_map_elements"},
+            "map.polygon_type": {0: "batch_size", 1: "num_map_elements"},
+            "map.polygon_on_route": {0: "batch_size", 1: "num_map_elements"},
+            "map.polygon_tl_status": {0: "batch_size", 1: "num_map_elements"},
+            "map.polygon_has_speed_limit": {0: "batch_size", 1: "num_map_elements"},
+            "map.polygon_speed_limit": {0: "batch_size", 1: "num_map_elements"},
+            "map.polygon_road_block_id": {0: "batch_size", 1: "num_map_elements"},
+            "map.valid_mask": {0: "batch_size", 1: "num_map_elements"},
+
+            "reference_line.position": {0: "batch_size", 2: "num_ref_points"},
+            "reference_line.vector": {0: "batch_size", 2: "num_ref_points"},
+            "reference_line.orientation": {0: "batch_size", 2: "num_ref_points"},
+            "reference_line.valid_mask": {0: "batch_size", 2: "num_ref_points"},
+            "reference_line.future_projection": {0: "batch_size", 2: "num_future_steps"},
+
+            "static_objects.position": {0: "batch_size", 1: "num_static_objects"},
+            "static_objects.heading": {0: "batch_size", 1: "num_static_objects"},
+            "static_objects.shape": {0: "batch_size", 1: "num_static_objects"},
+            "static_objects.category": {0: "batch_size", 1: "num_static_objects"},
+            "static_objects.valid_mask": {0: "batch_size", 1: "num_static_objects"},
+
+            "current_state": {0: "batch_size"},
+            "origin": {0: "batch_size"},
+            "angle": {0: "batch_size"}
+        }
+        # 导出ONNX模型
+        # scripted_model = torch.jit.script(model)
+        torch.onnx.export(
+            # scripted_model,          # 要导出的模型
+            model,          # 要导出的模型
+            dummy_input,                     # 用于导出模型的输入
+            onnx_output_path,                # 输出文件路径
+            opset_version=16,                 # 选择适合的ONNX版本
+            input_names=input_names,   # 扁平化后的输入名称列表
+            output_names=["output"],
+            dynamic_axes=dynamic_axes,  # 动态轴信息
+            verbose=True,  # 是否打印详细信息
+            # operator_export_type=torch.onnx.OperatorExportTypes.ONNX_ATEN_FALLBACK,
+        )
+
+        print(f"ONNX model saved to {onnx_output_path}")

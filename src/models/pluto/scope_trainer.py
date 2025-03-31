@@ -26,7 +26,7 @@ from src.utils.min_norm_solvers import MinNormSolver
 
 logger = logging.getLogger(__name__)
 
-
+# torch.set_float32_matmul_precision('high')
 class LightningTrainer(pl.LightningModule):
     def __init__(
         self,
@@ -455,7 +455,50 @@ class LightningTrainer(pl.LightningModule):
         :param features: features batch
         :return: model's predictions
         """
-        return self.model(features)
+        # print("features:",features)
+
+        data = [
+            features['agent']['position'],  #0
+            features['agent']['heading'],#1
+            features['agent']['velocity'],#2
+            features['agent']['shape'],#3
+            features['agent']['category'],#4
+            features['agent']['valid_mask'],#5
+            features['agent']['target'],#6
+
+            features['map']['point_position'],#7
+            features['map']['point_vector'],#8
+            features['map']['point_orientation'],#9
+            features['map']['point_side'],#10
+            features['map']['polygon_center'],#11
+            features['map']['polygon_position'],#12
+            features['map']['polygon_orientation'],#13
+            features['map']['polygon_type'],#14
+            features['map']['polygon_on_route'],#15
+            features['map']['polygon_tl_status'],#16
+            features['map']['polygon_has_speed_limit'],#17
+            features['map']['polygon_speed_limit'],#18
+            features['map']['polygon_road_block_id'],#19
+            features['map']['valid_mask'],#20
+
+            features['reference_line']['position'],#21
+            features['reference_line']['vector'],#22
+            features['reference_line']['orientation'],#23
+            features['reference_line']['valid_mask'],#24
+            features['reference_line']['future_projection'],#25
+
+            features['static_objects']['position'],#26
+            features['static_objects']['heading'],#27
+            features['static_objects']['shape'],#28
+            features['static_objects']['category'],#29
+            features['static_objects']['valid_mask'],#30
+
+            features['current_state'],#31
+            features['origin'],#32
+            features['angle'],#33
+        ]
+        return self.model(data)
+        # return self.model(features)
 
     def configure_optimizers(
         self,

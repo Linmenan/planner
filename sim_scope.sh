@@ -1,7 +1,15 @@
 export PYTHONPATH=$PYTHONPATH:$(pwd)
-export NUPLAN_DATA_ROOT="/path/to/nuplan/dataset"
-export NUPLAN_MAPS_ROOT="/path/to/dataset/maps"
-export WS="/path/to/PlanScope"
+###
+ # @Author: CGB cai.guanbin@byd.com
+ # @Date: 2025-03-17 14:00:47
+ # @LastEditors: CGB cai.guanbin@byd.com
+ # @LastEditTime: 2025-03-25 20:13:31
+ # @FilePath: /PlanScope/sim_scope.sh
+ # @Description: 这是默认设置,请设置`customMade`, 打开koroFileHeader查看配置 进行设置: https://github.com/OBKoro1/koro1FileHeader/wiki/%E9%85%8D%E7%BD%AE
+### 
+export NUPLAN_DATA_ROOT="/home/bydguikong/nuplan/dataset"
+export NUPLAN_MAPS_ROOT="/home/bydguikong/nuplan/dataset/maps"
+export WS="/home/bydguikong/nuplan"
 export NUPLAN_EXP_ROOT="$WS/exp"
 export HYDRA_FULL_ERROR=1
 
@@ -9,13 +17,13 @@ cwd=$(pwd)
 CKPT_ROOT="$cwd/checkpoints"
 
 PLANNER=scope_planner
-CKPT_N=scope1.0_timenorm_contra_m12
+CKPT_N=last
 CKPT=$CKPT_N.ckpt
 # BUILDER=nuplan_mini
 # FILTER=mini_demo_scenario
 # BUILDER=nuplan_challenge
 # FILTER=random14_benchmark
-BUILDER=nuplan
+BUILDER=nuplan_mini
 FILTER=val14_benchmark
 VIDEO_SAVE_DIR=$cwd/videos/$PLANNER.$CKPT_N/$FILTER
 

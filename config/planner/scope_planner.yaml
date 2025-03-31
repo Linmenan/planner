@@ -38,9 +38,9 @@ scope_planner:
     feature_builder:
       _target_: src.feature_builders.scope_feature_builder.ScopeFeatureBuilder
       _convert_: "all"
-      radius: 120
+      radius: 80
       history_horizon: 2
-      future_horizon: 8
+      future_horizon: 4
       sample_interval: 0.1
       max_agents: 48
       build_reference_line: true

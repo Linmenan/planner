@@ -136,10 +136,16 @@ class PlanningDecoder(nn.Module):
         enc_emb = enc_data["enc_emb"]
         enc_key_padding_mask = enc_data["enc_key_padding_mask"]
 
-        r_position = data["reference_line"]["position"]
-        r_vector = data["reference_line"]["vector"]
-        r_orientation = data["reference_line"]["orientation"]
-        r_valid_mask = data["reference_line"]["valid_mask"]
+        # r_position = data["reference_line"]["position"]
+        # r_vector = data["reference_line"]["vector"]
+        # r_orientation = data["reference_line"]["orientation"]
+        # r_valid_mask = data["reference_line"]["valid_mask"]
+
+        r_position = data[16]
+        r_vector = data[17]
+        r_orientation = data[18]
+        r_valid_mask = data[19]
+
         r_key_padding_mask = ~r_valid_mask.any(-1)
 
         r_feature = torch.cat(

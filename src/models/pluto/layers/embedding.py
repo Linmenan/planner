@@ -74,13 +74,24 @@ class NATSequenceEncoder(nn.Module):
         laterals = [
             lateral_conv(out[i]) for i, lateral_conv in enumerate(self.lateral_convs)
         ]
+        # print("laterals = ",laterals)
         for i in range(len(out) - 1, 0, -1):
+            # print("i = ",i)
+            # print("size(laterals[i]) = ",laterals[i].size())
+            # print("size(laterals[i-1]) = ",laterals[i - 1].size())
+            # print("laterals[i].shape[-1] = ",laterals[i].shape[-1])
+            # print("laterals[i-1].shape[-1] = ",laterals[i-1].shape[-1])
+            # print("factor = ",(laterals[i - 1].shape[-1] / laterals[i].shape[-1]))
+            # print("float factor = ",float(laterals[i - 1].shape[-1] / laterals[i].shape[-1]))
+            target_size = laterals[i - 1].size(-1)
             laterals[i - 1] = laterals[i - 1] + F.interpolate(
                 laterals[i],
-                scale_factor=(laterals[i - 1].shape[-1] / laterals[i].shape[-1]),
+                size=target_size,  # 动态计算目标尺寸，保留在计算图中
+                # scale_factor=float(laterals[i - 1].shape[-1] / laterals[i].shape[-1]),
                 mode="linear",
                 align_corners=False,
             )
+            
 
         out = self.fpn_conv(laterals[0])
 
@@ -91,6 +102,8 @@ class ConvTokenizer(nn.Module):
     def __init__(self, in_chans=3, embed_dim=32, norm_layer=None):
         super().__init__()
         self.proj = nn.Conv1d(in_chans, embed_dim, kernel_size=3, stride=1, padding=1)
+        # print("in_chans = ",in_chans)
+        # print("embed_dim = ",embed_dim)
 
         if norm_layer is not None:
             self.norm = norm_layer(embed_dim)
@@ -98,7 +111,14 @@ class ConvTokenizer(nn.Module):
             self.norm = None
 
     def forward(self, x):
+        # print("forward forward forward forward forward forward")
+        # print("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!x.type",type(x))
+        # print("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!x(num).type",type(x[0,0,0]))
+        # print("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!x",x)
+        # print("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!x.size()",x.size())
+        # print("1111111111111111111111111111111111111111111111")
         x = self.proj(x).permute(0, 2, 1)  # B, C, L -> B, L, C
+        # print("2222222222222222222222222222222222222222222222")
         if self.norm is not None:
             x = self.norm(x)
         return x
@@ -166,16 +186,24 @@ class NATLayer(nn.Module):
         self.mlp_ratio = mlp_ratio
 
         self.norm1 = norm_layer(dim)
-        self.attn = NeighborhoodAttention1D(
-            dim,
-            kernel_size=kernel_size,
-            dilation=dilation,
-            num_heads=num_heads,
-            qkv_bias=qkv_bias,
-            qk_scale=qk_scale,
-            attn_drop=attn_drop,
-            proj_drop=drop,
+        # self.attn = NeighborhoodAttention1D(
+        #     dim,
+        #     kernel_size=kernel_size,
+        #     dilation=dilation,
+        #     num_heads=num_heads,
+        #     qkv_bias=qkv_bias,
+        #     qk_scale=qk_scale,
+        #     attn_drop=attn_drop,
+        #     proj_drop=drop,
+        # )
+        
+        self.attn = nn.MultiheadAttention(
+            embed_dim=dim,       # 模型嵌入维度
+            num_heads=num_heads, # 注意力头数
+            dropout=attn_drop,   # 注意力 dropout 概率
+            bias=qkv_bias        # 是否使用偏置项
         )
+
 
         self.drop_path = DropPath(drop_path) if drop_path > 0.0 else nn.Identity()
         self.norm2 = norm_layer(dim)
@@ -186,14 +214,30 @@ class NATLayer(nn.Module):
             drop=drop,
         )
 
+    # def forward(self, x):
+    #     shortcut = x
+    #     x = self.norm1(x)
+    #     x = self.attn(x)
+    #     x = shortcut + self.drop_path(x)
+    #     x = x + self.drop_path(self.mlp(self.norm2(x)))
+    #     return x
+        
     def forward(self, x):
         shortcut = x
-        x = self.norm1(x)
-        x = self.attn(x)
-        x = shortcut + self.drop_path(x)
+        # 归一化
+        x = self.norm1(x)  # (B, L, C)
+        # 转换为 (L, B, C)
+        x = x.transpose(0, 1)
+        # 使用 MultiheadAttention 执行自注意力计算
+        # 此处 attn 返回 (attn_output, attn_weights)，我们只关心输出 attn_output
+        attn_output, _ = self.attn(x, x, x)
+        # 恢复为 (B, L, C)
+        attn_output = attn_output.transpose(0, 1)
+        # 残差连接
+        x = shortcut + self.drop_path(attn_output)
+        # MLP 部分（带归一化及残差连接）
         x = x + self.drop_path(self.mlp(self.norm2(x)))
         return x
-
 
 class NATBlock(nn.Module):
     def __init__(
@@ -268,29 +312,88 @@ class PointsEncoder(nn.Module):
             nn.Linear(256, self.encoder_channel),
         )
 
+    # def forward(self, x, mask=None):
+    #     """
+    #     x : B M 3
+    #     mask: B M
+    #     -----------------
+    #     feature_global : B C
+    #     """
+
+    #     bs, n, _ = x.shape
+    #     device = x.device
+    #     print(f"x.shape = {x.shape}, mask.shape = {mask.shape}")
+    #     print(f"mask = {mask}")
+    #     print(f"x[mask].shape = {x[mask].shape}, x[mask].type = {type(x[mask])}")
+    #     x_valid = self.first_mlp(x[mask])  # B n 256
+    #     x_features = torch.zeros(bs, n, 256, device=device)
+    #     x_features[mask] = x_valid
+
+    #     pooled_feature = x_features.max(dim=1)[0]
+    #     x_features = torch.cat(
+    #         [x_features, pooled_feature.unsqueeze(1).repeat(1, n, 1)], dim=-1
+    #     )
+
+    #     x_features_valid = self.second_mlp(x_features[mask])
+    #     res = torch.zeros(bs, n, self.encoder_channel, device=device)
+    #     res[mask] = x_features_valid
+
+    #     res = res.max(dim=1)[0]
+    #     print(f"res.shape = {res.shape}")
+    #     return res
     def forward(self, x, mask=None):
         """
-        x : B M 3
-        mask: B M
+        x : B x M x 3
+        mask: B x M (bool)
         -----------------
-        feature_global : B C
+        feature_global : B x C
         """
-
         bs, n, _ = x.shape
         device = x.device
+        # print(f"x.shape = {x.shape}, mask.shape = {mask.shape}")
+        # print(f"mask = {mask}")
 
-        x_valid = self.first_mlp(x[mask])  # B n 256
-        x_features = torch.zeros(bs, n, 256, device=device)
-        x_features[mask] = x_valid
+        # 将 x 和 mask 在前两个维度上拉平，便于使用索引
+        x_flat = x.view(-1, x.shape[-1])         # [B*M, 3]
+        mask_flat = mask.view(-1)                 # [B*M]
 
+        # 用 nonzero 得到有效索引，确保后续索引操作形状明确
+        valid_idx = mask_flat.nonzero(as_tuple=False).squeeze(1)  # [num_valid]
+
+        # 获取有效点 y
+        y = x_flat[valid_idx]
+        # print(f"y.shape = {y.shape}")
+
+        # 使用有效索引进行第一阶段 MLP 处理
+        x_valid = self.first_mlp(x_flat[valid_idx])  # [num_valid, 256]
+        
+        # 构造一个全零的特征张量，再使用 scatter 写入有效点特征
+        x_features = torch.zeros(bs * n, 256, device=device)
+        # valid_idx.unsqueeze(1) 的形状为 [num_valid, 1]，expand 后为 [num_valid, 256]
+        x_features = x_features.scatter(0, valid_idx.unsqueeze(1).expand(-1, 256), x_valid)
+        # 恢复形状为 [B, M, 256]
+        x_features = x_features.view(bs, n, 256)
+        
+        # 对每个 batch 取最大池化，得到 pooled_feature [B, 256]
         pooled_feature = x_features.max(dim=1)[0]
+        # 将 pooled_feature 扩展为 [B, M, 256] 后与 x_features 在最后一维拼接，结果 [B, M, 512]
         x_features = torch.cat(
             [x_features, pooled_feature.unsqueeze(1).repeat(1, n, 1)], dim=-1
         )
+        x_features_flat = x_features.view(-1, x_features.shape[-1])  # [B*M, 512]
+        
+        # 注意：这里使用 valid_idx 来索引而不是直接用布尔 mask
+        x_features_valid = self.second_mlp(x_features_flat[valid_idx])  # [num_valid, encoder_channel]
+        # print(f"x_features_valid.shape = {x_features_valid.shape}")
 
-        x_features_valid = self.second_mlp(x_features[mask])
-        res = torch.zeros(bs, n, self.encoder_channel, device=device)
-        res[mask] = x_features_valid
+        # 构造结果张量
+        res = torch.zeros(bs * n, self.encoder_channel, device=device)
+        # 用 scatter 将 x_features_valid 按照 valid_idx 写入 res
+        res = res.scatter(0, valid_idx.unsqueeze(1).expand(-1, self.encoder_channel), x_features_valid)
+        res = res.view(bs, n, self.encoder_channel)
+        # print(f"res.shape = {res.shape}")
 
+        # 对每个 batch 在 M 维度上取最大池化
         res = res.max(dim=1)[0]
+        # print(f"res.shape = {res.shape}")
         return res

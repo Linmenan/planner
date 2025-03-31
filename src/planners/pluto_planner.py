@@ -65,6 +65,7 @@ class PlutoPlanner(AbstractPlanner):
         self._scenario = scenario
         if use_gpu:
             self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+            # self.device = torch.device("cpu" if torch.cuda.is_available() else "cpu")
         else:
             self.device = torch.device("cpu")
         self._use_prediction = use_prediction

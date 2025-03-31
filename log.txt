@@ -1,0 +1,92 @@
+2025-03-25 20:13:37,371 INFO {/home/bydguikong/yy_ws/nuplan-devkit/nuplan/planning/script/builders/worker_pool_builder.py:19}  Building WorkerPool...
+2025-03-25 20:13:37,395 INFO {/home/bydguikong/yy_ws/nuplan-devkit/nuplan/planning/utils/multithreading/worker_ray.py:78}  Starting ray local!
+2025-03-25 20:13:38,549 INFO {/home/bydguikong/yy_ws/nuplan-devkit/nuplan/planning/utils/multithreading/worker_pool.py:101}  Worker: RayDistributed
+2025-03-25 20:13:38,549 INFO {/home/bydguikong/yy_ws/nuplan-devkit/nuplan/planning/utils/multithreading/worker_pool.py:102}  Number of nodes: 1
+Number of CPUs per node: 20
+Number of GPUs per node: 1
+Number of threads across all nodes: 20
+2025-03-25 20:13:38,550 INFO {/home/bydguikong/yy_ws/nuplan-devkit/nuplan/planning/script/builders/worker_pool_builder.py:27}  Building WorkerPool...DONE!
+2025-03-25 20:13:38,550 INFO {/home/bydguikong/yy_ws/nuplan-devkit/nuplan/planning/script/builders/folder_builder.py:32}  Building experiment folders...
+2025-03-25 20:13:38,550 INFO {/home/bydguikong/yy_ws/nuplan-devkit/nuplan/planning/script/builders/folder_builder.py:35}  
+
+	Folder where all results are stored: /home/bydguikong/nuplan/exp/exp/simulation/closed_loop_nonreactive_agents/scope_planner/val14_benchmark
+
+2025-03-25 20:13:38,553 INFO {/home/bydguikong/yy_ws/nuplan-devkit/nuplan/planning/script/builders/folder_builder.py:70}  Building experiment folders...DONE!
+2025-03-25 20:13:38,554 INFO {/home/bydguikong/yy_ws/nuplan-devkit/nuplan/planning/script/builders/simulation_callback_builder.py:52}  Building AbstractCallback...
+2025-03-25 20:13:38,554 INFO {/home/bydguikong/yy_ws/nuplan-devkit/nuplan/planning/script/builders/simulation_callback_builder.py:68}  Building AbstractCallback: 0...DONE!
+2025-03-25 20:13:38,554 INFO {/home/bydguikong/yy_ws/nuplan-devkit/nuplan/planning/script/builders/simulation_builder.py:47}  Building simulations...
+2025-03-25 20:13:38,554 INFO {/home/bydguikong/yy_ws/nuplan-devkit/nuplan/planning/script/builders/simulation_builder.py:53}  Extracting scenarios...
+2025-03-25 20:13:38,554 INFO {/home/bydguikong/yy_ws/nuplan-devkit/nuplan/common/utils/distributed_scenario_filter.py:83}  Building Scenarios in mode DistributedMode.SINGLE_NODE
+2025-03-25 20:13:38,555 INFO {/home/bydguikong/yy_ws/nuplan-devkit/nuplan/planning/script/builders/scenario_building_builder.py:18}  Building AbstractScenarioBuilder...
+2025-03-25 20:13:38,564 INFO {/home/bydguikong/yy_ws/nuplan-devkit/nuplan/planning/script/builders/scenario_building_builder.py:21}  Building AbstractScenarioBuilder...DONE!
+2025-03-25 20:13:38,564 INFO {/home/bydguikong/yy_ws/nuplan-devkit/nuplan/planning/script/builders/scenario_filter_builder.py:35}  Building ScenarioFilter...
+2025-03-25 20:13:38,594 INFO {/home/bydguikong/yy_ws/nuplan-devkit/nuplan/planning/script/builders/scenario_filter_builder.py:44}  Building ScenarioFilter...DONE!
+2025-03-25 20:13:39,717 INFO {/home/bydguikong/yy_ws/nuplan-devkit/nuplan/planning/script/builders/simulation_builder.py:74}  Building metric engines...
+2025-03-25 20:13:39,982 INFO {/home/bydguikong/yy_ws/nuplan-devkit/nuplan/planning/script/builders/simulation_builder.py:76}  Building metric engines...DONE
+2025-03-25 20:13:39,982 INFO {/home/bydguikong/yy_ws/nuplan-devkit/nuplan/planning/script/builders/simulation_builder.py:80}  Building simulations from 4 scenarios...
+2025-03-25 20:13:40,504 INFO {/home/bydguikong/yy_ws/nuplan-devkit/nuplan/planning/script/builders/simulation_builder.py:133}  Building simulations...DONE!
+2025-03-25 20:13:40,504 INFO {/home/bydguikong/yy_ws/PlanScope/run_simulation.py:97}  Running simulation...
+2025-03-25 20:13:40,504 INFO {/home/bydguikong/yy_ws/nuplan-devkit/nuplan/planning/script/utils.py:138}  Executing runners...
+2025-03-25 20:13:40,505 INFO {/home/bydguikong/yy_ws/nuplan-devkit/nuplan/planning/simulation/runner/executor.py:82}  Starting 4 simulations using RayDistributed!
+2025-03-25 20:13:40,505 INFO {/home/bydguikong/yy_ws/nuplan-devkit/nuplan/planning/utils/multithreading/worker_pool.py:116}  Submitting 4 tasks!
+[36m(wrapped_fn pid=385404)[0m >>>Missing keys: []
+[36m(wrapped_fn pid=385404)[0m >>>Unexpected keys: []
+[36m(wrapped_fn pid=385613)[0m 
+[36m(wrapped_fn pid=385613)[0m  video saved to  /home/bydguikong/yy_ws/PlanScope/videos/scope_planner.last/val14_benchmark/closed_loop_nonreactive_agents.norule/video.mp4
+[36m(wrapped_fn pid=385613)[0m 
+[36m(wrapped_fn pid=385615)[0m >>>Missing keys: [][32m [repeated 3x across cluster][0m
+[36m(wrapped_fn pid=385615)[0m >>>Unexpected keys: [][32m [repeated 3x across cluster][0m
+[36m(wrapped_fn pid=385404)[0m 
+[36m(wrapped_fn pid=385404)[0m 
+[36m(wrapped_fn pid=385404)[0m  video saved to  /home/bydguikong/yy_ws/PlanScope/videos/scope_planner.last/val14_benchmark/closed_loop_nonreactive_agents.norule/video.mp4
+[36m(wrapped_fn pid=385615)[0m 
+[36m(wrapped_fn pid=385615)[0m  video saved to  /home/bydguikong/yy_ws/PlanScope/videos/scope_planner.last/val14_benchmark/closed_loop_nonreactive_agents.norule/video.mp4
+[36m(wrapped_fn pid=385615)[0m 
+2025-03-25 20:15:14,783 INFO {/home/bydguikong/yy_ws/nuplan-devkit/nuplan/planning/simulation/runner/executor.py:127}  Number of successful simulations: 4
+2025-03-25 20:15:14,783 INFO {/home/bydguikong/yy_ws/nuplan-devkit/nuplan/planning/simulation/runner/executor.py:128}  Number of failed simulations: 0
+2025-03-25 20:15:14,783 INFO {/home/bydguikong/yy_ws/nuplan-devkit/nuplan/planning/script/utils.py:147}  Finished executing runners!
+[36m(wrapped_fn pid=385614)[0m 
+[36m(wrapped_fn pid=385614)[0m 
+2025-03-25 20:15:14,788 INFO {/home/bydguikong/yy_ws/nuplan-devkit/nuplan/planning/script/utils.py:74}  Saved runner reports to /home/bydguikong/nuplan/exp/exp/simulation/closed_loop_nonreactive_agents/scope_planner/val14_benchmark/runner_report.parquet
+2025-03-25 20:15:14,789 INFO {/home/bydguikong/yy_ws/nuplan-devkit/nuplan/planning/simulation/main_callback/time_callback.py:27}  Simulation duration: 00:01:37 [HH:MM:SS]
+2025-03-25 20:15:14,840 INFO {/home/bydguikong/yy_ws/nuplan-devkit/nuplan/planning/simulation/main_callback/metric_file_callback.py:79}  Metric files integration: 00:00:00 [HH:MM:SS]
+2025-03-25 20:15:14,873 INFO {/home/bydguikong/yy_ws/nuplan-devkit/nuplan/planning/simulation/main_callback/metric_aggregator_callback.py:58}  Running metric aggregator: closed_loop_nonreactive_agents_weighted_average
+2025-03-25 20:15:14,881 INFO {/home/bydguikong/yy_ws/nuplan-devkit/nuplan/planning/simulation/main_callback/metric_aggregator_callback.py:69}  Metric aggregator: 00:00:00 [HH:MM:SS]
+2025-03-25 20:15:15,859 INFO {/home/bydguikong/anaconda3/envs/planscope/lib/python3.9/site-packages/matplotlib/category.py:223}  Using categorical units to plot a list of strings that are all parsable as floats or dates. If these strings should be plotted as numbers, cast to the appropriate data type before plotting.
+2025-03-25 20:15:15,860 INFO {/home/bydguikong/anaconda3/envs/planscope/lib/python3.9/site-packages/matplotlib/category.py:223}  Using categorical units to plot a list of strings that are all parsable as floats or dates. If these strings should be plotted as numbers, cast to the appropriate data type before plotting.
+2025-03-25 20:15:16,608 INFO {/home/bydguikong/anaconda3/envs/planscope/lib/python3.9/site-packages/matplotlib/category.py:223}  Using categorical units to plot a list of strings that are all parsable as floats or dates. If these strings should be plotted as numbers, cast to the appropriate data type before plotting.
+2025-03-25 20:15:16,608 INFO {/home/bydguikong/anaconda3/envs/planscope/lib/python3.9/site-packages/matplotlib/category.py:223}  Using categorical units to plot a list of strings that are all parsable as floats or dates. If these strings should be plotted as numbers, cast to the appropriate data type before plotting.
+2025-03-25 20:15:16,610 INFO {/home/bydguikong/anaconda3/envs/planscope/lib/python3.9/site-packages/matplotlib/category.py:223}  Using categorical units to plot a list of strings that are all parsable as floats or dates. If these strings should be plotted as numbers, cast to the appropriate data type before plotting.
+2025-03-25 20:15:16,610 INFO {/home/bydguikong/anaconda3/envs/planscope/lib/python3.9/site-packages/matplotlib/category.py:223}  Using categorical units to plot a list of strings that are all parsable as floats or dates. If these strings should be plotted as numbers, cast to the appropriate data type before plotting.
+2025-03-25 20:15:16,612 INFO {/home/bydguikong/anaconda3/envs/planscope/lib/python3.9/site-packages/matplotlib/category.py:223}  Using categorical units to plot a list of strings that are all parsable as floats or dates. If these strings should be plotted as numbers, cast to the appropriate data type before plotting.
+2025-03-25 20:15:16,612 INFO {/home/bydguikong/anaconda3/envs/planscope/lib/python3.9/site-packages/matplotlib/category.py:223}  Using categorical units to plot a list of strings that are all parsable as floats or dates. If these strings should be plotted as numbers, cast to the appropriate data type before plotting.
+2025-03-25 20:15:16,613 INFO {/home/bydguikong/anaconda3/envs/planscope/lib/python3.9/site-packages/matplotlib/category.py:223}  Using categorical units to plot a list of strings that are all parsable as floats or dates. If these strings should be plotted as numbers, cast to the appropriate data type before plotting.
+2025-03-25 20:15:16,614 INFO {/home/bydguikong/anaconda3/envs/planscope/lib/python3.9/site-packages/matplotlib/category.py:223}  Using categorical units to plot a list of strings that are all parsable as floats or dates. If these strings should be plotted as numbers, cast to the appropriate data type before plotting.
+2025-03-25 20:15:17,137 INFO {/home/bydguikong/anaconda3/envs/planscope/lib/python3.9/site-packages/matplotlib/category.py:223}  Using categorical units to plot a list of strings that are all parsable as floats or dates. If these strings should be plotted as numbers, cast to the appropriate data type before plotting.
+2025-03-25 20:15:17,137 INFO {/home/bydguikong/anaconda3/envs/planscope/lib/python3.9/site-packages/matplotlib/category.py:223}  Using categorical units to plot a list of strings that are all parsable as floats or dates. If these strings should be plotted as numbers, cast to the appropriate data type before plotting.
+2025-03-25 20:15:51,825 INFO {/home/bydguikong/yy_ws/nuplan-devkit/nuplan/planning/simulation/main_callback/metric_summary_callback.py:344}  Metric summary: 00:00:36 [HH:MM:SS]
+2025-03-25 20:15:51,826 INFO {/home/bydguikong/yy_ws/PlanScope/run_simulation.py:104}  Finished running simulation!
+{   'aggregator_type': 'weighted_average',
+    'corners_in_drivable_area': None,
+    'drivable_area_compliance': 1.0,
+    'driving_direction_compliance': 1.0,
+    'ego_is_comfortable': 0.75,
+    'ego_is_making_progress': 1.0,
+    'ego_jerk': None,
+    'ego_lane_change': None,
+    'ego_lat_acceleration': None,
+    'ego_lon_acceleration': None,
+    'ego_lon_jerk': None,
+    'ego_progress_along_expert_route': 0.9116250889111904,
+    'ego_yaw_acceleration': None,
+    'ego_yaw_rate': None,
+    'log_name': None,
+    'no_ego_at_fault_collisions': 1.0,
+    'num_scenarios': 4.0,
+    'planner_name': 'ScopePlanner',
+    'scenario': 'final_score',
+    'scenario_type': 'final_score',
+    'score': 0.9337506651256282,
+    'speed_limit_compliance': 0.970471299363525,
+    'time_to_collision_within_bound': 1.0}
+[36m(wrapped_fn pid=385614)[0m  video saved to  /home/bydguikong/yy_ws/PlanScope/videos/scope_planner.last/val14_benchmark/closed_loop_nonreactive_agents.norule/video.mp4

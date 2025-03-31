@@ -38,7 +38,7 @@ def main(cfg: DictConfig) -> Optional[TrainingEngine]:
     :param cfg: omegaconf dictionary
     """
     pl.seed_everything(cfg.seed, workers=True)
-
+    # print("1111111111111111111111111111111111111")
     # Configure logger
     build_logger(cfg)
 
@@ -53,6 +53,7 @@ def main(cfg: DictConfig) -> Optional[TrainingEngine]:
 
     if cfg.py_func == "train":
         # Build training engine
+        # print("222222222222222222222222222222222222222222222222222")
         with ProfilerContextManager(
             cfg.output_dir, cfg.enable_profiling, "build_training_engine"
         ):
