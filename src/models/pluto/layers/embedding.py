@@ -186,6 +186,14 @@ class NATLayer(nn.Module):
         self.mlp_ratio = mlp_ratio
 
         self.norm1 = norm_layer(dim)
+        print(f"dim = {dim}")
+        print(f"kernel_size = {kernel_size}")
+        print(f"dilation = {dilation}")
+        print(f"num_heads = {num_heads}")
+        print(f"qkv_bias = {qkv_bias}")
+        print(f"qk_scale = {qk_scale}")
+        print(f"attn_drop = {attn_drop}")
+        print(f"proj_drop = {drop}")
         # self.attn = NeighborhoodAttention1D(
         #     dim,
         #     kernel_size=kernel_size,
