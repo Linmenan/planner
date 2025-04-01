@@ -3,6 +3,99 @@ import torch.nn as nn
 import torch.nn.functional as F
 from natten import NeighborhoodAttention1D
 from timm.models.layers import DropPath
+import math
+class CustomizedNeighborhoodAttention1D_MH(nn.Module):
+    def __init__(self, radius, dim, num_heads, qkv_bias=True, attn_drop=0.0, proj_drop=0.0):
+        """
+        多头邻域注意力模块。
+        参数：
+            radius: int，邻域半径（窗口大小 = 2*radius + 1）
+            dim: int，输入特征总维度
+            num_heads: int，多头数，要求 dim % num_heads == 0
+            qkv_bias: bool，是否有偏置
+            attn_drop, proj_drop: dropout 概率
+        """
+        super(CustomizedNeighborhoodAttention1D_MH, self).__init__()
+        self.radius = radius
+        self.window_size = 2 * radius + 1
+        self.dim = dim
+        self.num_heads = num_heads
+        assert dim % num_heads == 0, "dim must be divisible by num_heads"
+        self.head_dim = dim // num_heads
+        self.scale = math.sqrt(self.head_dim)
+        self.qkv = nn.Linear(dim, dim * 3, bias=qkv_bias)
+        self.attn_drop = nn.Dropout(attn_drop)
+        self.proj = nn.Linear(dim, dim)
+        self.proj_drop = nn.Dropout(proj_drop)
+
+    def forward(self, x):
+        """
+        参数：
+            x: Tensor, shape = (B, L, dim)
+        返回：
+            out: Tensor, shape = (B, L, dim)
+        """
+        B, L, _ = x.shape
+        # 生成 q, k, v: (B, L, 3*dim)
+        qkv = self.qkv(x)
+        # 重塑为 (B, L, 3, num_heads, head_dim) 再 permute 得到 (3, B, num_heads, L, head_dim)
+        qkv = qkv.reshape(B, L, 3, self.num_heads, self.head_dim).permute(2, 0, 3, 1, 4)
+        q, k, v = qkv[0], qkv[1], qkv[2]  # 每个的形状为 (B, num_heads, L, head_dim)
+        # 合并 B 和 num_heads → (B', L, head_dim)，其中 B' = B * num_heads
+        q = q.reshape(B * self.num_heads, L, self.head_dim)
+        k = k.reshape(B * self.num_heads, L, self.head_dim)
+        v = v.reshape(B * self.num_heads, L, self.head_dim)
+        
+        # 对 k 和 v 沿序列维度填充，使得每个位置都可以构造一个完整的局部窗口
+        # 将 k, v 转置为 (B', head_dim, L)
+        k_t = k.transpose(1, 2)
+        v_t = v.transpose(1, 2)
+        # 填充最后一维（原来的 L 维），pad=(left, right)
+        k_padded = F.pad(k_t, pad=(self.radius, self.radius), mode='constant', value=0)
+        v_padded = F.pad(v_t, pad=(self.radius, self.radius), mode='constant', value=0)
+        # 转回来 (B', L+2*radius, head_dim)
+        k_padded = k_padded.transpose(1, 2)
+        v_padded = v_padded.transpose(1, 2)
+        
+        # 使用基础算子替代 unfold：
+        # k_padded: (B', L+2*radius, head_dim)
+        Bprime = k_padded.shape[0]
+        device = k_padded.device
+        # 生成索引矩阵，形状 (L, window_size)；第 i 行为 [i, i+1, ..., i+window_size-1]
+        idx = torch.arange(L, device=device).unsqueeze(1) + torch.arange(self.window_size, device=device).unsqueeze(0)
+        # idx: (L, window_size)；扩展到 (Bprime, L, window_size)
+        idx = idx.unsqueeze(0).expand(Bprime, L, self.window_size)
+        # 将 idx 展开为 (Bprime, L * window_size)
+        idx_flat = idx.reshape(Bprime, L * self.window_size)
+        # 构造与 k_padded 在维度1一致的索引张量，k_padded 的形状为 (Bprime, L+2*radius, head_dim)
+        # 扩展 idx_flat 到 (Bprime, L * window_size, head_dim)
+        idx_expanded = idx_flat.unsqueeze(-1).expand(Bprime, L * self.window_size, self.head_dim)
+        # 使用 gather 在维度1上提取对应的局部窗口数据，结果形状 (Bprime, L * window_size, head_dim)
+        k_windows_flat = torch.gather(k_padded, dim=1, index=idx_expanded)
+        v_windows_flat = torch.gather(v_padded, dim=1, index=idx_expanded)
+        # reshape 成 (Bprime, L, window_size, head_dim)
+        k_windows = k_windows_flat.reshape(Bprime, L, self.window_size, self.head_dim)
+        v_windows = v_windows_flat.reshape(Bprime, L, self.window_size, self.head_dim)
+        
+        # 替代 einsum 计算 scores：
+        # q: (B', L, head_dim) → unsqueeze(dim=2) → (B', L, 1, head_dim)
+        # k_windows: (B', L, window_size, head_dim) → transpose(-2, -1) → (B', L, head_dim, window_size)
+        scores = torch.matmul(q.unsqueeze(2), k_windows.transpose(-2, -1)).squeeze(2) / self.scale  # (B', L, window_size)
+        attn = torch.softmax(scores, dim=-1)
+        attn = self.attn_drop(attn)
+        
+        # 替代 einsum 计算输出：out = sum_{w} attn * v_windows
+        # attn: (B', L, window_size) → unsqueeze(dim=2): (B', L, 1, window_size)
+        # v_windows: (B', L, window_size, head_dim)
+        out = torch.matmul(attn.unsqueeze(2), v_windows).squeeze(2)  # (B', L, head_dim)
+        
+        # 恢复形状：(B, num_heads, L, head_dim)
+        out = out.reshape(B, self.num_heads, L, self.head_dim)
+        # 合并头 (B, L, dim)
+        out = out.transpose(1, 2).reshape(B, L, self.dim)
+        out = self.proj(out)
+        out = self.proj_drop(out)
+        return out
 
 
 class NATSequenceEncoder(nn.Module):
@@ -205,11 +298,21 @@ class NATLayer(nn.Module):
         #     proj_drop=drop,
         # )
         
-        self.attn = nn.MultiheadAttention(
-            embed_dim=dim,       # 模型嵌入维度
-            num_heads=num_heads, # 注意力头数
-            dropout=attn_drop,   # 注意力 dropout 概率
-            bias=qkv_bias        # 是否使用偏置项
+        # self.attn = nn.MultiheadAttention(
+        #     embed_dim=dim,       # 模型嵌入维度
+        #     num_heads=num_heads, # 注意力头数
+        #     dropout=attn_drop,   # 注意力 dropout 概率
+        #     bias=qkv_bias        # 是否使用偏置项
+        # )
+        radius=(kernel_size-1)//2
+        print(f"radius = {radius}")
+        self.attn = CustomizedNeighborhoodAttention1D_MH(
+            dim=dim,
+            radius=radius,
+            num_heads=num_heads,
+            qkv_bias=qkv_bias,
+            attn_drop=attn_drop,
+            proj_drop=drop,
         )
 
 
@@ -222,30 +325,30 @@ class NATLayer(nn.Module):
             drop=drop,
         )
 
-    # def forward(self, x):
-    #     shortcut = x
-    #     x = self.norm1(x)
-    #     x = self.attn(x)
-    #     x = shortcut + self.drop_path(x)
-    #     x = x + self.drop_path(self.mlp(self.norm2(x)))
-    #     return x
-        
     def forward(self, x):
         shortcut = x
-        # 归一化
-        x = self.norm1(x)  # (B, L, C)
-        # 转换为 (L, B, C)
-        x = x.transpose(0, 1)
-        # 使用 MultiheadAttention 执行自注意力计算
-        # 此处 attn 返回 (attn_output, attn_weights)，我们只关心输出 attn_output
-        attn_output, _ = self.attn(x, x, x)
-        # 恢复为 (B, L, C)
-        attn_output = attn_output.transpose(0, 1)
-        # 残差连接
-        x = shortcut + self.drop_path(attn_output)
-        # MLP 部分（带归一化及残差连接）
+        x = self.norm1(x)
+        x = self.attn(x)
+        x = shortcut + self.drop_path(x)
         x = x + self.drop_path(self.mlp(self.norm2(x)))
         return x
+        
+    # def forward(self, x):
+    #     shortcut = x
+    #     # 归一化
+    #     x = self.norm1(x)  # (B, L, C)
+    #     # 转换为 (L, B, C)
+    #     x = x.transpose(0, 1)
+    #     # 使用 MultiheadAttention 执行自注意力计算
+    #     # 此处 attn 返回 (attn_output, attn_weights)，我们只关心输出 attn_output
+    #     attn_output, _ = self.attn(x, x, x)
+    #     # 恢复为 (B, L, C)
+    #     attn_output = attn_output.transpose(0, 1)
+    #     # 残差连接
+    #     x = shortcut + self.drop_path(attn_output)
+    #     # MLP 部分（带归一化及残差连接）
+    #     x = x + self.drop_path(self.mlp(self.norm2(x)))
+    #     return x
 
 class NATBlock(nn.Module):
     def __init__(
