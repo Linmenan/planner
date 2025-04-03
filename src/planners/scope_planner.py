@@ -186,10 +186,7 @@ class ScopePlanner(AbstractPlanner):
         self._scenario_manager.update_drivable_area_map()
         # planning_trajectory = []
         planning_trajectory = self._run_planning_once(current_input)
-        # try:
-        #     self.ckpt2onnx()# 可能出错的代码
-        # except Exception as e:
-        #     print(f"发生错误: {e}, 跳过此部分")
+
         
 
         self._inference_runtimes.append(time.perf_counter() - start_time)
@@ -228,20 +225,119 @@ class ScopePlanner(AbstractPlanner):
         # print("~~~~~~~~~~~~~~current_input!!!!!!!!!!!!!!!!!!!!!!!",type(current_input))
 
         
+      # 保存 agent 部分
         save_train_data(
-            planner_feature.data["map"]["point_position"],
-            "/home/bydguikong/yy_ws/PlanScope/map_data.pt")
+            planner_feature_torch.data['agent']['position'],
+            "/home/bydguikong/yy_ws/PlanScope/agent_position_data.pt"
+        )
         save_train_data(
-            planner_feature.data["map"]["valid_mask"],
-            "/home/bydguikong/yy_ws/PlanScope/map_mask_data.pt")
-        
+            planner_feature_torch.data['agent']['heading'],
+            "/home/bydguikong/yy_ws/PlanScope/agent_heading_data.pt"
+        )
         save_train_data(
-            planner_feature.data["agent"]["position"],
-            "/home/bydguikong/yy_ws/PlanScope/agent_position_data.pt")
+            planner_feature_torch.data['agent']['velocity'],
+            "/home/bydguikong/yy_ws/PlanScope/agent_velocity_data.pt"
+        )
         save_train_data(
-            planner_feature.data["agent"]["valid_mask"],
-            "/home/bydguikong/yy_ws/PlanScope/agent_mask_data.pt")
-        
+            planner_feature_torch.data['agent']['shape'],
+            "/home/bydguikong/yy_ws/PlanScope/agent_shape_data.pt"
+        )
+        save_train_data(
+            planner_feature_torch.data['agent']['category'],
+            "/home/bydguikong/yy_ws/PlanScope/agent_category_data.pt"
+        )
+        save_train_data(
+            planner_feature_torch.data['agent']['valid_mask'],
+            "/home/bydguikong/yy_ws/PlanScope/agent_mask_data.pt"
+        )
+
+        # 保存 map 部分
+        save_train_data(
+            planner_feature_torch.data['map']['point_position'],
+            "/home/bydguikong/yy_ws/PlanScope/map_point_position_data.pt"
+        )
+        save_train_data(
+            planner_feature_torch.data['map']['point_vector'],
+            "/home/bydguikong/yy_ws/PlanScope/map_point_vector_data.pt"
+        )
+        save_train_data(
+            planner_feature_torch.data['map']['point_orientation'],
+            "/home/bydguikong/yy_ws/PlanScope/map_point_orientation_data.pt"
+        )
+        save_train_data(
+            planner_feature_torch.data['map']['polygon_center'],
+            "/home/bydguikong/yy_ws/PlanScope/map_polygon_center_data.pt"
+        )
+        save_train_data(
+            planner_feature_torch.data['map']['polygon_type'],
+            "/home/bydguikong/yy_ws/PlanScope/map_polygon_type_data.pt"
+        )
+        save_train_data(
+            planner_feature_torch.data['map']['polygon_on_route'],
+            "/home/bydguikong/yy_ws/PlanScope/map_polygon_on_route_data.pt"
+        )
+        save_train_data(
+            planner_feature_torch.data['map']['polygon_tl_status'],
+            "/home/bydguikong/yy_ws/PlanScope/map_polygon_tl_status_data.pt"
+        )
+        save_train_data(
+            planner_feature_torch.data['map']['polygon_has_speed_limit'],
+            "/home/bydguikong/yy_ws/PlanScope/map_polygon_has_speed_limit_data.pt"
+        )
+        save_train_data(
+            planner_feature_torch.data['map']['polygon_speed_limit'],
+            "/home/bydguikong/yy_ws/PlanScope/map_polygon_speed_limit_data.pt"
+        )
+        save_train_data(
+            planner_feature_torch.data['map']['valid_mask'],
+            "/home/bydguikong/yy_ws/PlanScope/map_mask_data.pt"
+        )
+
+        # 保存 reference_line 部分
+        save_train_data(
+            planner_feature_torch.data['reference_line']['position'],
+            "/home/bydguikong/yy_ws/PlanScope/reference_line_position_data.pt"
+        )
+        save_train_data(
+            planner_feature_torch.data['reference_line']['vector'],
+            "/home/bydguikong/yy_ws/PlanScope/reference_line_vector_data.pt"
+        )
+        save_train_data(
+            planner_feature_torch.data['reference_line']['orientation'],
+            "/home/bydguikong/yy_ws/PlanScope/reference_line_orientation_data.pt"
+        )
+        save_train_data(
+            planner_feature_torch.data['reference_line']['valid_mask'],
+            "/home/bydguikong/yy_ws/PlanScope/reference_line_valid_mask_data.pt"
+        )
+
+        # 保存 static_objects 部分
+        save_train_data(
+            planner_feature_torch.data['static_objects']['position'],
+            "/home/bydguikong/yy_ws/PlanScope/static_objects_position_data.pt"
+        )
+        save_train_data(
+            planner_feature_torch.data['static_objects']['heading'],
+            "/home/bydguikong/yy_ws/PlanScope/static_objects_heading_data.pt"
+        )
+        save_train_data(
+            planner_feature_torch.data['static_objects']['shape'],
+            "/home/bydguikong/yy_ws/PlanScope/static_objects_shape_data.pt"
+        )
+        save_train_data(
+            planner_feature_torch.data['static_objects']['category'],
+            "/home/bydguikong/yy_ws/PlanScope/static_objects_category_data.pt"
+        )
+        save_train_data(
+            planner_feature_torch.data['static_objects']['valid_mask'],
+            "/home/bydguikong/yy_ws/PlanScope/static_objects_valid_mask_data.pt"
+        )
+
+        # 保存 current_state 部分
+        save_train_data(
+            planner_feature_torch.data['current_state'],
+            "/home/bydguikong/yy_ws/PlanScope/current_state_data.pt"
+        )
         # torch.save(planner_feature.data["map"]["point_position"], "/home/bydguikong/yy_ws/PlanScope/map_data.pt")
         # print("Point Postiton: >>>>>>>>>>>>>>>>>====", planner_feature.data["map"]["point_position"])
         # print(planner_feature.data["map"]["point_position"].shape)
@@ -279,6 +375,15 @@ class ScopePlanner(AbstractPlanner):
         ]
 
         out = self._planner.forward(data)
+        save_train_data(
+            out["candidate_trajectories"],
+            "/home/bydguikong/yy_ws/PlanScope/candidate_trajectories_data.pt"
+        )
+        save_train_data(
+            out["probability"],
+            "/home/bydguikong/yy_ws/PlanScope/probability_data.pt"
+        )
+
         # out = self._planner.forward(planner_feature_torch.data)
         candidate_trajectories = (
             out["candidate_trajectories"][0].cpu().numpy().astype(np.float64)
@@ -552,131 +657,4 @@ class ScopePlanner(AbstractPlanner):
 
         return report
         
-    def ckpt2onnx(self,onnx_output_path:str = "/home/bydguikong/yy_ws/PlanScope/onnx/model.onnx"):
-        device = self.device
-        print("YYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYY  ckpt2onnx YYYYYYYYYYYYYYYYYYYYYY")
-        model = self._planner
-        
-        # self._planner.eval()
-        # 创建虚拟输入数据 (dummy_input)
-        # dummy_input = []
-        # 1. 扁平化后的 dummy_input（列表顺序必须固定）
-        dummy_input = [
-            # agent 部分
-            torch.randn(1, 1, 21, 2, device=device),            # 0: agent.position
-            torch.randn(1, 1, 21, device=device),                # 1: agent.heading
-            torch.randn(1, 1, 21, 2, device=device),             # 2: agent.velocity
-            torch.randn(1, 1, 21, 2, device=device),             # 3: agent.shape
-            torch.randint(0, 2, (1, 1), device=device),          # 4: agent.category
-            torch.randint(0, 2, (1, 1, 21), dtype=torch.bool, device=device),  # 5: agent.valid_mask
-            torch.randn(1, 1, 0, 3, device=device),              # 6: agent.target
-
-            # map 部分
-            torch.randn(1, 178, 3, 20, 2, device=device),         # 7: map.point_position
-            torch.randn(1, 178, 3, 20, 2, device=device),         # 8: map.point_vector
-            torch.randn(1, 178, 3, 20, device=device),            # 9: map.point_orientation
-            torch.randn(1, 178, 3, device=device),                # 10: map.point_side
-            torch.randn(1, 178, 3, device=device),                # 11: map.polygon_center
-            torch.randn(1, 178, 2, device=device),                # 12: map.polygon_position
-            torch.randn(1, 178, device=device),                   # 13: map.polygon_orientation
-            torch.randint(0, 3, (1, 178), device=device),         # 14: map.polygon_type
-            torch.randint(0, 2, (1, 178), dtype=torch.bool, device=device),  # 15: map.polygon_on_route
-            torch.randint(0, 1, (1, 178), dtype=torch.int8, device=device),  # 16: map.polygon_tl_status
-            torch.randint(0, 2, (1, 178), dtype=torch.bool, device=device),  # 17: map.polygon_has_speed_limit
-            torch.randn(1, 178, device=device),                   # 18: map.polygon_speed_limit
-            torch.randint(0, 1000, (1, 178), dtype=torch.int32, device=device),  # 19: map.polygon_road_block_id
-            torch.randint(0, 2, (1, 178, 20), dtype=torch.bool, device=device),  # 20: map.valid_mask
-
-            # reference_line 部分
-            torch.randn(1, 1, 120, 2, device=device),             # 21: reference_line.position
-            torch.randn(1, 1, 120, 2, device=device),             # 22: reference_line.vector
-            torch.randn(1, 1, 120, device=device),                # 23: reference_line.orientation
-            torch.randint(0, 2, (1, 1, 120), dtype=torch.bool, device=device), # 24: reference_line.valid_mask
-            torch.randn(1, 1, 8, 2, device=device),               # 25: reference_line.future_projection
-
-            # static_objects 部分
-            torch.randn(1, 12, 2, device=device),                 # 26: static_objects.position
-            torch.randn(1, 12, device=device),                    # 27: static_objects.heading
-            torch.randn(1, 12, 2, device=device),                 # 28: static_objects.shape
-            torch.randint(0, 1, (1, 12), device=device),          # 29: static_objects.category
-            torch.randint(0, 2, (1, 12), dtype=torch.bool, device=device),  # 30: static_objects.valid_mask
-
-            # 其他部分
-            torch.randn(1, 7, device=device),                     # 31: current_state
-            torch.randn(1, 2, device=device),                     # 32: origin
-            torch.randn(1, device=device),                        # 33: angle
-        ]
-
-        # 为方便 ONNX 导出，定义每个输入的名称（顺序与 dummy_input 一一对应）
-        input_names = [
-            "agent.position", "agent.heading", "agent.velocity", "agent.shape",
-            "agent.category", "agent.valid_mask", "agent.target",
-            "map.point_position", "map.point_vector", "map.point_orientation", "map.point_side",
-            "map.polygon_center", "map.polygon_position", "map.polygon_orientation",
-            "map.polygon_type", "map.polygon_on_route", "map.polygon_tl_status",
-            "map.polygon_has_speed_limit", "map.polygon_speed_limit", "map.polygon_road_block_id",
-            "map.valid_mask",
-            "reference_line.position", "reference_line.vector", "reference_line.orientation",
-            "reference_line.valid_mask", "reference_line.future_projection",
-            "static_objects.position", "static_objects.heading", "static_objects.shape",
-            "static_objects.category", "static_objects.valid_mask",
-            "current_state", "origin", "angle"
-        ]
-        # 3. 定义 dynamic_axes
-        # 这里只设置可能动态变化的轴：batch、agent数量、地图元素数量、参考线采样点数、静态物体数量等
-        dynamic_axes = {
-            "agent.position": {0: "batch_size", 1: "num_agents"},
-            "agent.heading": {0: "batch_size", 1: "num_agents"},
-            "agent.velocity": {0: "batch_size", 1: "num_agents"},
-            "agent.shape": {0: "batch_size", 1: "num_agents"},
-            "agent.category": {0: "batch_size", 1: "num_agents"},
-            "agent.valid_mask": {0: "batch_size", 1: "num_agents"},
-            "agent.target": {0: "batch_size", 1: "num_agents", 2: "num_targets"},
-
-            "map.point_position": {0: "batch_size", 1: "num_map_elements"},
-            "map.point_vector": {0: "batch_size", 1: "num_map_elements"},
-            "map.point_orientation": {0: "batch_size", 1: "num_map_elements"},
-            "map.point_side": {0: "batch_size", 1: "num_map_elements"},
-            "map.polygon_center": {0: "batch_size", 1: "num_map_elements"},
-            "map.polygon_position": {0: "batch_size", 1: "num_map_elements"},
-            "map.polygon_orientation": {0: "batch_size", 1: "num_map_elements"},
-            "map.polygon_type": {0: "batch_size", 1: "num_map_elements"},
-            "map.polygon_on_route": {0: "batch_size", 1: "num_map_elements"},
-            "map.polygon_tl_status": {0: "batch_size", 1: "num_map_elements"},
-            "map.polygon_has_speed_limit": {0: "batch_size", 1: "num_map_elements"},
-            "map.polygon_speed_limit": {0: "batch_size", 1: "num_map_elements"},
-            "map.polygon_road_block_id": {0: "batch_size", 1: "num_map_elements"},
-            "map.valid_mask": {0: "batch_size", 1: "num_map_elements"},
-
-            "reference_line.position": {0: "batch_size", 2: "num_ref_points"},
-            "reference_line.vector": {0: "batch_size", 2: "num_ref_points"},
-            "reference_line.orientation": {0: "batch_size", 2: "num_ref_points"},
-            "reference_line.valid_mask": {0: "batch_size", 2: "num_ref_points"},
-            "reference_line.future_projection": {0: "batch_size", 2: "num_future_steps"},
-
-            "static_objects.position": {0: "batch_size", 1: "num_static_objects"},
-            "static_objects.heading": {0: "batch_size", 1: "num_static_objects"},
-            "static_objects.shape": {0: "batch_size", 1: "num_static_objects"},
-            "static_objects.category": {0: "batch_size", 1: "num_static_objects"},
-            "static_objects.valid_mask": {0: "batch_size", 1: "num_static_objects"},
-
-            "current_state": {0: "batch_size"},
-            "origin": {0: "batch_size"},
-            "angle": {0: "batch_size"}
-        }
-        # 导出ONNX模型
-        # scripted_model = torch.jit.script(model)
-        torch.onnx.export(
-            # scripted_model,          # 要导出的模型
-            model,          # 要导出的模型
-            dummy_input,                     # 用于导出模型的输入
-            onnx_output_path,                # 输出文件路径
-            opset_version=16,                 # 选择适合的ONNX版本
-            input_names=input_names,   # 扁平化后的输入名称列表
-            output_names=["output"],
-            dynamic_axes=dynamic_axes,  # 动态轴信息
-            verbose=True,  # 是否打印详细信息
-            # operator_export_type=torch.onnx.OperatorExportTypes.ONNX_ATEN_FALLBACK,
-        )
-
-        print(f"ONNX model saved to {onnx_output_path}")
+    

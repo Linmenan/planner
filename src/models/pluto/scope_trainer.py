@@ -464,38 +464,30 @@ class LightningTrainer(pl.LightningModule):
             features['agent']['shape'],#3
             features['agent']['category'],#4
             features['agent']['valid_mask'],#5
-            features['agent']['target'],#6
 
-            features['map']['point_position'],#7
-            features['map']['point_vector'],#8
-            features['map']['point_orientation'],#9
-            features['map']['point_side'],#10
-            features['map']['polygon_center'],#11
-            features['map']['polygon_position'],#12
-            features['map']['polygon_orientation'],#13
-            features['map']['polygon_type'],#14
-            features['map']['polygon_on_route'],#15
-            features['map']['polygon_tl_status'],#16
-            features['map']['polygon_has_speed_limit'],#17
-            features['map']['polygon_speed_limit'],#18
-            features['map']['polygon_road_block_id'],#19
-            features['map']['valid_mask'],#20
+            features['map']['point_position'],#6
+            features['map']['point_vector'],#7
+            features['map']['point_orientation'],#8
+            features['map']['polygon_center'],#9
+            features['map']['polygon_type'],#10
+            features['map']['polygon_on_route'],#11
+            features['map']['polygon_tl_status'],#12
+            features['map']['polygon_has_speed_limit'],#13
+            features['map']['polygon_speed_limit'],#14
+            features['map']['valid_mask'],#15
 
-            features['reference_line']['position'],#21
-            features['reference_line']['vector'],#22
-            features['reference_line']['orientation'],#23
-            features['reference_line']['valid_mask'],#24
-            features['reference_line']['future_projection'],#25
+            features['reference_line']['position'],#16
+            features['reference_line']['vector'],#17
+            features['reference_line']['orientation'],#18
+            features['reference_line']['valid_mask'],#19
 
-            features['static_objects']['position'],#26
-            features['static_objects']['heading'],#27
-            features['static_objects']['shape'],#28
-            features['static_objects']['category'],#29
-            features['static_objects']['valid_mask'],#30
+            features['static_objects']['position'],#20
+            features['static_objects']['heading'],#21
+            features['static_objects']['shape'],#22
+            features['static_objects']['category'],#23
+            features['static_objects']['valid_mask'],#24
 
-            features['current_state'],#31
-            features['origin'],#32
-            features['angle'],#33
+            features['current_state'],#25
         ]
         return self.model(data)
         # return self.model(features)

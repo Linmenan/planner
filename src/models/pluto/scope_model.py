@@ -80,6 +80,7 @@ class PlanningModel(TorchModuleWrapper):
             future_trajectory_sampling=trajectory_sampling,
         )
 
+
         self.dim = dim
         self.history_steps = history_steps
         self.future_steps = future_steps
@@ -207,11 +208,14 @@ class PlanningModel(TorchModuleWrapper):
         # print(f"key_padding_mask.shape: {key_padding_mask.shape}")
 
         x_agent = self.agent_encoder(data)
+        # print(f"x_agent.shape: {x_agent.shape}")
         x_polygon = self.map_encoder(data)
-        x_static, static_pos, static_key_padding = self.static_objects_encoder(data)
+        # print(f"x_polygon.shape: {x_polygon.shape}")
+        x_static, static_pos, static_key_padding = self.static_objects_encoder(data)#静态障碍物形状+位置编码、静态障碍物位置、无效掩码
+        # print(f"x_static.shape: {x_static.shape}")
 
         x = torch.cat([x_agent, x_polygon, x_static], dim=1)
-
+        vary_nums = [x_agent.shape[1], x_polygon.shape[1], x_static.shape[1]]
         pos = torch.cat([pos, static_pos], dim=1)
         pos_embed = self.pos_emb(pos)
 
@@ -219,9 +223,12 @@ class PlanningModel(TorchModuleWrapper):
         # print(f"static_key_padding.shape: {static_key_padding.shape}")
         # print(f"key_padding_mask.shape: {key_padding_mask.shape}")
         x = x + pos_embed
-
-        for blk in self.encoder_blocks:
-            x = blk(x, key_padding_mask=key_padding_mask, return_attn_weights=False)
+        # print(f"x.shape: {x.shape}")
+        # print(f"key_padding_mask.shape: {key_padding_mask.shape}")
+        # print(f"key_padding_mask: {key_padding_mask}")
+        for index, blk in enumerate(self.encoder_blocks):
+        # for blk in self.encoder_blocks:
+            x = blk(x,index=[index,len(self.encoder_blocks)],vary_nums=vary_nums, key_padding_mask=key_padding_mask, return_attn_weights=False)
         x = self.norm(x)
         prediction = self.agent_predictor(x[:, 1:A])
 
@@ -283,7 +290,7 @@ class PlanningModel(TorchModuleWrapper):
 
             if trajectory is not None:
                 # r_padding_mask = ~data["reference_line"]["valid_mask"].any(-1)
-                r_padding_mask = ~data[24].any(-1)
+                r_padding_mask = ~data[19].any(-1)
                 probability.masked_fill_(r_padding_mask.unsqueeze(-1), -1e6)
 
                 angle = self.custom_atan2(trajectory[..., 3], trajectory[..., 2])
@@ -297,8 +304,8 @@ class PlanningModel(TorchModuleWrapper):
                     torch.arange(bs), flattened_probability.argmax(-1)
                 ]
 
-                out["output_trajectory"] = best_trajectory # out 4 多模态轨迹（x,y,yaw）
-                out["candidate_trajectories"] = out_trajectory # out 5 打分最高轨迹（x,y,yaw）
+                out["output_trajectory"] = best_trajectory # out 4 打分最高轨迹（x,y,yaw）
+                out["candidate_trajectories"] = out_trajectory # out 5 多模态轨迹（x,y,yaw）
             else:
                 # TODO (1,0,0) originally
                 out["output_trajectory"] = out["output_ref_free_trajectory"]
