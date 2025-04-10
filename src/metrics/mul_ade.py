@@ -157,11 +157,11 @@ class mulADE(torch.nn.Module):
         for i, d in enumerate(details):
             l = (level-i-1)
             b, r, m, t, dim = d.shape
-            d = d.reshape(b, r*m, t, dim)
-            d, _ = sort_predictions(d, probabilities, k=self.k)
+            d = d.reshape(b, r*m, t, dim) # 合并参考车道r与多模态维度m
+            d, _ = sort_predictions(d, probabilities, k=self.k) # 按照概率排序，取前k个模态（注意：此处已经将参考车道与模态维度合并）
             d = d[:,0,:,:2]
-            interval = self.downsample_rate**l
-            horizon = self.max_horizon*2**l
+            interval = self.downsample_rate**l # 采样间隔为2的l次方【8，4，2，1】
+            horizon = self.max_horizon*2**l # 视野由基础视野10乘以2的l次方
             e = (d-target)[:,:horizon][:,::interval]
             e = e.norm(dim=-1, p=2)
             if self.mul_norm:
@@ -207,7 +207,7 @@ class mulADE(torch.nn.Module):
                 v_pred - v_target, p=2, dim=-1
             )
             error += v_error[...,self.history_length:].mean()
-
+        # 连续小波变换损失
         if 'cwt_v_loss' in self.mul_ade_loss:
             error += self.cwt_loss(v_pred, v_target, 
                             outputs["trajectory"].device, self.wavelet, self.edge_mode)
@@ -218,7 +218,7 @@ class mulADE(torch.nn.Module):
 
         # recursive head loss
         details = outputs["details"]
-        if not len(details) == 0 and self.use_dwt:
+        if not len(details) == 0 and self.use_dwt: # 使用离散小波变换
             error += self.dwt_loss(details, 
                                    data['agent'][self.learning_output][:,0,:,:2], 
                                    probabilities,
@@ -226,7 +226,7 @@ class mulADE(torch.nn.Module):
                                    self.d_wavelet,
                                    self.d_edge_mode)
 
-        if not len(details) == 0 and not self.use_dwt:
+        if not len(details) == 0 and not self.use_dwt: # 不使用离散小波变换
             error += self.horizon_loss(details, 
                                    data['agent'][self.learning_output][:,0,:,:2], 
                                    probabilities,

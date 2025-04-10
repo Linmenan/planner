@@ -200,13 +200,13 @@ class LightningTrainer(pl.LightningModule):
         scope_loss = self.mul_ade(res, data)
 
         loss = (
-            ego_reg_loss*self.weights[0]
-            + ego_cls_loss*self.weights[1]
-            + prediction_loss*self.weights[2]
-            + contrastive_loss
-            + collision_loss*self.weights[3]
-            + ego_ref_free_reg_loss*self.weights[4]
-            + scope_loss*self.weights[5]
+            ego_reg_loss*self.weights[0] # 回归损失（路径近似程度）
+            + ego_cls_loss*self.weights[1] # 分类损失（体现决策近似程度）
+            + prediction_loss*self.weights[2] #运动预测损失
+            + contrastive_loss # 三元组对比损失,为了学习一个良好的嵌入空间，使得来自同一类别或同一正样本对的向量更相似，而来自不同类别或负样本对的向量更不相似
+            + collision_loss*self.weights[3] # 碰撞风险损失
+            + ego_ref_free_reg_loss*self.weights[4] # 无参考回归损失，使用数据集GT作为参考Target
+            + scope_loss*self.weights[5] # 路径细节损失
         )
         if self.training and self.dynamic_weight:
             self.losses = [ego_reg_loss, 

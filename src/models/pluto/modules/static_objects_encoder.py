@@ -50,30 +50,38 @@ class StaticObjectsEncoder(nn.Module):
 
         # 下面要将有效位置（valid_mask==True）的特征从 obj_emb_tmp 拷贝到一个全零张量中，
         # 避免直接布尔索引带来的问题，使用 scatter 替代
-        bs, N, feat_dim = obj_emb_tmp.shape
+        _, N = valid_mask.shape
+        bs, _, feat_dim = obj_emb_tmp.shape
+        print(f"obj_emb_tmp.shape:{obj_emb_tmp.shape}")
+        # 对有效特征进行处理，但如果 N==0 或者有效障碍物数量为0时直接跳过 scatter 处理
+        if N == 0:
+            obj_emb = obj_emb_tmp  # 或者直接构造一个相同形状的空张量
+        else:
+            obj_emb = torch.where(valid_mask.unsqueeze(-1), obj_emb_tmp, torch.zeros_like(obj_emb_tmp))
+            # # 创建一个全零张量，与 obj_emb_tmp 形状相同
+            # obj_emb = torch.zeros_like(obj_emb_tmp)
 
-        # 创建一个全零张量，与 obj_emb_tmp 形状相同
-        obj_emb = torch.zeros_like(obj_emb_tmp)
+            # # 将张量拉平处理，方便后续 scatter 操作
+            # obj_emb_flat = obj_emb.view(-1, feat_dim)         # [B*N, feat_dim]
+            # obj_emb_tmp_flat = obj_emb_tmp.view(-1, feat_dim)   # [B*N, feat_dim]
+            # valid_mask_flat = valid_mask.view(-1)               # [B*N]
 
-        # 将张量拉平处理，方便后续 scatter 操作
-        obj_emb_flat = obj_emb.view(-1, feat_dim)         # [B*N, feat_dim]
-        obj_emb_tmp_flat = obj_emb_tmp.view(-1, feat_dim)   # [B*N, feat_dim]
-        valid_mask_flat = valid_mask.view(-1)               # [B*N]
+            # # 获取 valid_mask_flat 中 True 的位置索引
+            # valid_idx = valid_mask_flat.nonzero(as_tuple=False).squeeze(1)  # [num_valid]
 
-        # 获取 valid_mask_flat 中 True 的位置索引
-        valid_idx = valid_mask_flat.nonzero(as_tuple=False).squeeze(1)  # [num_valid]
+            # # 使用 scatter 将有效特征写入全零张量中：
+            # # valid_idx.unsqueeze(1).expand(-1, feat_dim) 的形状为 [num_valid, feat_dim],
+            # # 与 obj_emb_tmp_flat[valid_idx] 的形状一致
+            # obj_emb_flat = obj_emb_flat.scatter(0,
+            #                                     valid_idx.unsqueeze(1).expand(-1, feat_dim),
+            #                                     obj_emb_tmp_flat[valid_idx])
+            # # 将更新后的 obj_emb_flat 恢复为原始形状 [B, N, feat_dim]
+            # obj_emb = obj_emb_flat.view(bs, N, feat_dim)
 
-        # 使用 scatter 将有效特征写入全零张量中：
-        #  valid_idx.unsqueeze(1).expand(-1, feat_dim) 的形状为 [num_valid, feat_dim],
-        #  与 obj_emb_tmp_flat[valid_idx] 的形状一致
-        obj_emb_flat = obj_emb_flat.scatter(0, valid_idx.unsqueeze(1).expand(-1, feat_dim),
-                                            obj_emb_tmp_flat[valid_idx])
-        # 将更新后的 obj_emb_flat 恢复为原始形状 [B, N, feat_dim]
-        obj_emb = obj_emb_flat.view(bs, N, feat_dim)
-
-        # 对 heading 进行归一化
-        heading = (heading + math.pi) % (2 * math.pi) - math.pi
-        # 拼接物体位置和 heading（扩展 heading 的最后一维）
+            # 对 heading 进行归一化
+            heading = (heading + math.pi) % (2 * math.pi) - math.pi
+            # 拼接物体位置和 heading（扩展 heading 的最后一维）
+        
         obj_pos = torch.cat([pos, heading.unsqueeze(-1)], dim=-1)
 
         # 返回特征、物体位置信息以及无效掩码（取反 valid_mask）
