@@ -49,6 +49,7 @@ class TransformerEncoderLayer(nn.Module):
         drop_path=0.0,
         act_layer=nn.GELU,
         norm_layer=nn.LayerNorm,
+        debug=False,
     ):
         super().__init__()
         self.norm1 = norm_layer(dim)
@@ -59,6 +60,7 @@ class TransformerEncoderLayer(nn.Module):
             dropout=attn_drop,
             batch_first=True,
         )
+        self.debug = debug
         self.drop_path1 = DropPath(drop_path) if drop_path > 0.0 else nn.Identity()
 
         self.norm2 = norm_layer(dim)
@@ -88,102 +90,102 @@ class TransformerEncoderLayer(nn.Module):
             key_padding_mask=key_padding_mask,
         )
         # print(f"attn = {attn}")
-        # if index[0]+1==index[1]:
-        #     import numpy as np
-        #     import plotly.graph_objects as go
-        #     # attn_mtx: shape [bs, A, A]，取第一个样本
-        #     # print(f"attn.shape = {attn.shape}")
-        #     # print(f"key_padding_mask.shape = {key_padding_mask.shape}")
-        #     _,A = key_padding_mask.shape
-        #     attn_data = attn[0].cpu().detach().numpy()                       # (A, A)
-        #     mask_data = key_padding_mask[0].float().cpu().detach().numpy()   # (A,)
+        if self.debug and index[0]+1==index[1]:
+            import numpy as np
+            import plotly.graph_objects as go
+            # attn_mtx: shape [bs, A, A]，取第一个样本
+            # print(f"attn.shape = {attn.shape}")
+            # print(f"key_padding_mask.shape = {key_padding_mask.shape}")
+            _,A = key_padding_mask.shape
+            attn_data = attn[0].cpu().detach().numpy()                       # (A, A)
+            mask_data = key_padding_mask[0].float().cpu().detach().numpy()   # (A,)
             
-        #     # 设置下方水平掩码显示高度和右侧垂直掩码显示宽度（单位：数据坐标）
-        #     mask_display_height = A//10  # 下方区域高度
-        #     mask_display_width = A//10   # 右侧区域宽度
+            # 设置下方水平掩码显示高度和右侧垂直掩码显示宽度（单位：数据坐标）
+            mask_display_height = A//10  # 下方区域高度
+            mask_display_width = A//10   # 右侧区域宽度
 
-        #     # 构造水平掩码数据：将 1 行的掩码广播为 (mask_display_height, A)
-        #     mask_horizontal = np.tile(mask_data[np.newaxis, :], (mask_display_height, 1))
-        #     # 构造垂直掩码数据：将 1D 掩码转置后广播为 (A, mask_display_width)
-        #     mask_vertical = np.tile(mask_data[:, np.newaxis], (1, mask_display_width))
+            # 构造水平掩码数据：将 1 行的掩码广播为 (mask_display_height, A)
+            mask_horizontal = np.tile(mask_data[np.newaxis, :], (mask_display_height, 1))
+            # 构造垂直掩码数据：将 1D 掩码转置后广播为 (A, mask_display_width)
+            mask_vertical = np.tile(mask_data[:, np.newaxis], (1, mask_display_width))
 
-        #     # 定义整个图像数据区域：
-        #     # 热力图数据区域：x: [0, A], y: [mask_display_height, A+mask_display_height]
-        #     # 水平掩码区域：x: [0, A], y: [A+mask_display_height, A+mask_display_height+mask_display_height]
-        #     # 垂直掩码区域：x: [A, A+mask_display_width], y: [mask_display_height, A+mask_display_height]
-        #     total_x = A + mask_display_width
-        #     total_y = A + mask_display_height
+            # 定义整个图像数据区域：
+            # 热力图数据区域：x: [0, A], y: [mask_display_height, A+mask_display_height]
+            # 水平掩码区域：x: [0, A], y: [A+mask_display_height, A+mask_display_height+mask_display_height]
+            # 垂直掩码区域：x: [A, A+mask_display_width], y: [mask_display_height, A+mask_display_height]
+            total_x = A + mask_display_width
+            total_y = A + mask_display_height
 
-        #     # 创建 Plotly 图形
-        #     fig = go.Figure()
+            # 创建 Plotly 图形
+            fig = go.Figure()
 
-        #     # 添加 Attention 热力图 trace（注意：设置 extent 保证数据区域与坐标一致）
-        #     x_vals = np.arange(A)
-        #     y_vals = np.arange(A)
-        #     fig.add_trace(go.Heatmap(
-        #         z=attn_data,
-        #         x=x_vals,
-        #         y=y_vals,
-        #         colorscale='Viridis',
-        #         colorbar=dict(title="Attention", len=0.5, y=0.25)
-        #     ))
+            # 添加 Attention 热力图 trace（注意：设置 extent 保证数据区域与坐标一致）
+            x_vals = np.arange(A)
+            y_vals = np.arange(A)
+            fig.add_trace(go.Heatmap(
+                z=attn_data,
+                x=x_vals,
+                y=y_vals,
+                colorscale='Viridis',
+                colorbar=dict(title="Attention", len=0.5, y=0.25)
+            ))
 
 
-        #     # 添加水平掩码 trace，显示在热力图下方
-        #     x_vals_mask = np.arange(A)
-        #     y_vals_mask = np.arange(A, A + mask_display_height)
-        #     fig.add_trace(go.Heatmap(
-        #         z=mask_horizontal,
-        #         x=x_vals_mask,
-        #         y=y_vals_mask,
-        #         colorscale='Gray',
-        #         showscale=False
-        #     ))
+            # 添加水平掩码 trace，显示在热力图下方
+            x_vals_mask = np.arange(A)
+            y_vals_mask = np.arange(A, A + mask_display_height)
+            fig.add_trace(go.Heatmap(
+                z=mask_horizontal,
+                x=x_vals_mask,
+                y=y_vals_mask,
+                colorscale='Gray',
+                showscale=False
+            ))
 
-        #     # 添加垂直掩码 trace，显示在热力图右侧
-        #     x_vals_mask_v = np.arange(A, A + mask_display_width)
-        #     y_vals_mask_v = np.arange(A)
-        #     fig.add_trace(go.Heatmap(
-        #         z=mask_vertical,
-        #         x=x_vals_mask_v,
-        #         y=y_vals_mask_v,
-        #         colorscale='Gray',
-        #         showscale=False
-        #     ))
+            # 添加垂直掩码 trace，显示在热力图右侧
+            x_vals_mask_v = np.arange(A, A + mask_display_width)
+            y_vals_mask_v = np.arange(A)
+            fig.add_trace(go.Heatmap(
+                z=mask_vertical,
+                x=x_vals_mask_v,
+                y=y_vals_mask_v,
+                colorscale='Gray',
+                showscale=False
+            ))
 
-        #     # 添加边界划分线：根据 vary_nums 对热力图区域进行分割
-        #     # 边界在 x 轴：x1 = num_agents, x2 = num_agents + num_map
-        #     # 假设 vary_nums[0] 表示 agent 数量，vary_nums[1] 表示 map 数量
-        #     x1 = vary_nums[0] - 0.5
-        #     x2 = vary_nums[0] + vary_nums[1] - 0.5
-        #     y1 = vary_nums[0] - 0.5
-        #     y2 = vary_nums[0] + vary_nums[1] - 0.5
+            # 添加边界划分线：根据 vary_nums 对热力图区域进行分割
+            # 边界在 x 轴：x1 = num_agents, x2 = num_agents + num_map
+            # 假设 vary_nums[0] 表示 agent 数量，vary_nums[1] 表示 map 数量
+            x1 = vary_nums[0] - 0.5
+            x2 = vary_nums[0] + vary_nums[1] - 0.5
+            y1 = vary_nums[0] - 0.5
+            y2 = vary_nums[0] + vary_nums[1] - 0.5
 
-        #     # 添加垂直边界线
-        #     fig.add_shape(type="line",
-        #                 x0=x1, y0=-0.5, x1=x1, y1=A-0.5,
-        #                 line=dict(color="red", width=2))
-        #     fig.add_shape(type="line",
-        #                 x0=x2, y0=-0.5, x1=x2, y1=A-0.5,
-        #                 line=dict(color="red", width=2))
-        #     # 添加水平边界线
-        #     fig.add_shape(type="line",
-        #                 x0=-0.5, y0=y1, x1=A-0.5, y1=y1,
-        #                 line=dict(color="red", width=2))
-        #     fig.add_shape(type="line",
-        #                 x0=-0.5, y0=y2, x1=A-0.5, y1=y2,
-        #                 line=dict(color="red", width=2))
+            # 添加垂直边界线
+            fig.add_shape(type="line",
+                        x0=x1, y0=-0.5, x1=x1, y1=A-0.5,
+                        line=dict(color="red", width=2))
+            fig.add_shape(type="line",
+                        x0=x2, y0=-0.5, x1=x2, y1=A-0.5,
+                        line=dict(color="red", width=2))
+            # 添加水平边界线
+            fig.add_shape(type="line",
+                        x0=-0.5, y0=y1, x1=A-0.5, y1=y1,
+                        line=dict(color="red", width=2))
+            fig.add_shape(type="line",
+                        x0=-0.5, y0=y2, x1=A-0.5, y1=y2,
+                        line=dict(color="red", width=2))
 
-        #     # 设置坐标轴，左上角为原点，x 向右，y 向下为正
-        #     fig.update_layout(
-        #         title="Attention Heatmap with Partitioned Regions",
-        #         xaxis=dict(title="Position", side='top', tickmode='linear', dtick=1, range=[-0.5, A + mask_display_width-0.5]),
-        #         yaxis=dict(title="Position", tickmode='linear', dtick=1, range=[A + mask_display_height-0.5, -0.5]),
-        #         width=500,
-        #         height=500
-        #     )
+            # 设置坐标轴，左上角为原点，x 向右，y 向下为正
+            fig.update_layout(
+                title="Attention Heatmap with Partitioned Regions",
+                xaxis=dict(title="Key", side='bottom', tickmode='linear', dtick=1, range=[-0.5, A + mask_display_width-0.5]),
+                yaxis=dict(title="Query", tickmode='linear', dtick=1, range=[A + mask_display_height-0.5, -0.5]),
+                width=500,
+                height=500
+            )
 
-        #     fig.show(renderer="notebook")
+            fig.show(renderer="notebook")
 
 
         src = src + self.drop_path1(src2)

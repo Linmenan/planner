@@ -73,6 +73,7 @@ class PlanningModel(TorchModuleWrapper):
         mvn_loss=False,
         wtd_with_history=False,
         feature_builder: PlutoFeatureBuilder = PlutoFeatureBuilder(),
+        plot_debug = False,
     ) -> None:
         super().__init__(
             feature_builders=[feature_builder],
@@ -80,7 +81,7 @@ class PlanningModel(TorchModuleWrapper):
             future_trajectory_sampling=trajectory_sampling,
         )
 
-
+        self.plot_debug = plot_debug
         self.dim = dim
         self.history_steps = history_steps
         self.future_steps = future_steps
@@ -112,7 +113,7 @@ class PlanningModel(TorchModuleWrapper):
         self.static_objects_encoder = StaticObjectsEncoder(dim=dim)
 
         self.encoder_blocks = nn.ModuleList(
-            TransformerEncoderLayer(dim=dim, num_heads=num_heads, drop_path=dp)
+            TransformerEncoderLayer(dim=dim, num_heads=num_heads, drop_path=dp,debug=self.plot_debug)
             for dp in [x.item() for x in torch.linspace(0, drop_path, encoder_depth)]
         )
         self.norm = nn.LayerNorm(dim)
@@ -148,7 +149,8 @@ class PlanningModel(TorchModuleWrapper):
         self.mvn_loss = mvn_loss
         if self.mvn_loss:
             self.mvn_decoder = MLPLayer(dim, 3 * dim, future_steps * 4)
-    
+    def set_debug(self, debug):
+        self.plot_debug = debug
 
     def _init_weights(self, m):
         if isinstance(m, nn.Linear):
@@ -208,11 +210,11 @@ class PlanningModel(TorchModuleWrapper):
         # print(f"key_padding_mask.shape: {key_padding_mask.shape}")
 
         x_agent = self.agent_encoder(data)
-        # print(f"x_agent.shape: {x_agent.shape}")
+        print(f"x_agent.shape: {x_agent.shape}")
         x_polygon = self.map_encoder(data)
-        # print(f"x_polygon.shape: {x_polygon.shape}")
+        print(f"x_polygon.shape: {x_polygon.shape}")
         x_static, static_pos, static_key_padding = self.static_objects_encoder(data)#静态障碍物形状+位置编码、静态障碍物位置、无效掩码
-        # print(f"x_static.shape: {x_static.shape}")
+        print(f"x_static.shape: {x_static.shape}")
 
         x = torch.cat([x_agent, x_polygon, x_static], dim=1)
         vary_nums = [x_agent.shape[1], x_polygon.shape[1], x_static.shape[1]]
@@ -228,7 +230,7 @@ class PlanningModel(TorchModuleWrapper):
         # print(f"key_padding_mask: {key_padding_mask}")
         for index, blk in enumerate(self.encoder_blocks):
         # for blk in self.encoder_blocks:
-            x = blk(x,index=[index,len(self.encoder_blocks)],vary_nums=vary_nums, key_padding_mask=key_padding_mask, return_attn_weights=False)
+            x = blk(x, key_padding_mask=key_padding_mask, return_attn_weights=False, index=[index,len(self.encoder_blocks)],vary_nums=vary_nums)
         x = self.norm(x)
         prediction = self.agent_predictor(x[:, 1:A])
 
