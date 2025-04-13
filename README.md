@@ -76,7 +76,7 @@ Preprocess the dataset to accelerate training. It is recommended to run a small 
  python run_training.py \
     py_func=cache +training=train_pluto \
     scenario_builder=nuplan_mini \
-    cache.cache_path=/nuplan/exp/sanity_check \
+    cache.cache_path=$HOME/nuplan/exp/sanity_check \
     cache.cleanup_cache=true \
     scenario_filter=training_scenarios_tiny \
     worker=sequential
@@ -90,7 +90,7 @@ Then preprocess the whole nuPlan training set (this will take some time). You ma
  python run_training.py \
     py_func=cache +training=train_pluto \
     scenario_builder=nuplan \
-    cache.cache_path=/nuplan/exp/cache_pluto_1M \
+    cache.cache_path=$HOME/nuplan/exp/cache_pluto_1M \
     cache.cleanup_cache=true \
     scenario_filter=training_scenarios_1M \
     worker.threads_per_node=40
