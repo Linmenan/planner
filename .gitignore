@@ -160,9 +160,9 @@ cython_debug/
 .vscode
 wandb/
 outputs/
-*.ckpt
-*.pt
-checkpoints/
+# *.ckpt
+# *.pt
+# checkpoints/
 any_test.py
 exp/
 videos/
