@@ -96,10 +96,14 @@ class LightningTrainer(pl.LightningModule):
                               use_dwt=use_dwt,
                               ).to(self.device)
         self.dynamic_weight = dynamic_weight
-        self.weights = torch.tensor(init_weights).to(self.device)
+        print(f"self.device: {self.device}")
+        init_weights = [float(w) for w in init_weights]
+        self.weights = torch.tensor(init_weights, dtype=torch.float32)
+        self.weights = self.weights.to(self.device)
+        print(f"self.weights dtype after to device: {self.weights.dtype}")
         if self.dynamic_weight:
-            self.weights = torch.autograd.Variable(self.weights, requires_grad=True)
-
+            # self.weights = torch.autograd.Variable(self.weights, requires_grad=True)
+            self.weights.requires_grad = True
         self.mvn_loss = MVNLoss(k=3, with_grad=True).to(self.device)
         print('WARNING: Overall future time horizon is set to 80')
         self.OT = 80

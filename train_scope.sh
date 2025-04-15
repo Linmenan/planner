@@ -8,9 +8,9 @@ export PYTHONPATH=$PYTHONPATH:$(pwd)
  # @Description: 这是默认设置,请设置`customMade`, 打开koroFileHeader查看配置 进行设置: https://github.com/OBKoro1/koro1FileHeader/wiki/%E9%85%8D%E7%BD%AE
 ### 
 
-export NUPLAN_DATA_ROOT="/home/bydguikong/nuplan/dataset"
-export NUPLAN_MAPS_ROOT="/home/bydguikong/nuplan/dataset/maps"
-export WS="/home/bydguikong/nuplan"
+export NUPLAN_DATA_ROOT="/home/yy/nuplan/data"
+export NUPLAN_MAPS_ROOT="/home/yy/nuplan/maps"
+export WS="/home/yy/nuplan"
 export NUPLAN_EXP_ROOT="$WS/exp"
 export HYDRA_FULL_ERROR=1
 
@@ -49,6 +49,7 @@ CUDA_VISIBLE_DEVICES=0,1,2,3,4,5,6,7 python run_training.py \
   scenario_builder=nuplan \
   cache.use_cache_without_dataset=true \
   cache.cache_path=$WS/exp/cache_pluto_1M \
+  # cache.cache_path=$WS/exp/sanity_check \
   data_loader.params.batch_size=32 data_loader.params.num_workers=16 \
   lightning.trainer.params.val_check_interval=0.5 \
   lr=1e-3 epochs=25 warmup_epochs=3 weight_decay=0.0001 \
