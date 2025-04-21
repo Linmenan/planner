@@ -52,7 +52,7 @@ class StaticObjectsEncoder(nn.Module):
         # 避免直接布尔索引带来的问题，使用 scatter 替代
         _, N = valid_mask.shape
         bs, _, feat_dim = obj_emb_tmp.shape
-        print(f"obj_emb_tmp.shape:{obj_emb_tmp.shape}")
+        # print(f"obj_emb_tmp.shape:{obj_emb_tmp.shape}")
         # 对有效特征进行处理，但如果 N==0 或者有效障碍物数量为0时直接跳过 scatter 处理
         if N == 0:
             obj_emb = obj_emb_tmp  # 或者直接构造一个相同形状的空张量

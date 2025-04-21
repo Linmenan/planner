@@ -210,11 +210,11 @@ class PlanningModel(TorchModuleWrapper):
         # print(f"key_padding_mask.shape: {key_padding_mask.shape}")
 
         x_agent = self.agent_encoder(data)
-        print(f"x_agent.shape: {x_agent.shape}")
+        # print(f"x_agent.shape: {x_agent.shape}")
         x_polygon = self.map_encoder(data)
-        print(f"x_polygon.shape: {x_polygon.shape}")
+        # print(f"x_polygon.shape: {x_polygon.shape}")
         x_static, static_pos, static_key_padding = self.static_objects_encoder(data)#静态障碍物形状+位置编码、静态障碍物位置、无效掩码
-        print(f"x_static.shape: {x_static.shape}")
+        # print(f"x_static.shape: {x_static.shape}")
 
         x = torch.cat([x_agent, x_polygon, x_static], dim=1)
         vary_nums = [x_agent.shape[1], x_polygon.shape[1], x_static.shape[1]]

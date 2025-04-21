@@ -71,11 +71,13 @@ class ScopePlanner(AbstractPlanner):
         learning_based_score_weight: float = 0.25,
         use_prediction: bool = True,
         rule_based_evaluator: bool = True,
+        save_pt_data = False,
     ) -> None:
         """
         Initializes the ML planner class.
         :param model: Model to use for inference.
         """
+        self.save_pt_data = save_pt_data
         self._render = render
         self._imgs = []
         self._scenario = scenario
@@ -225,119 +227,121 @@ class ScopePlanner(AbstractPlanner):
         # print("~~~~~~~~~~~~~~current_input!!!!!!!!!!!!!!!!!!!!!!!",type(current_input))
 
         
-      # 保存 agent 部分
-        save_train_data(
-            planner_feature_torch.data['agent']['position'],
-            "/home/bydguikong/yy_ws/PlanScope/test_data/agent_position_data.pt"
-        )
-        save_train_data(
-            planner_feature_torch.data['agent']['heading'],
-            "/home/bydguikong/yy_ws/PlanScope/test_data/agent_heading_data.pt"
-        )
-        save_train_data(
-            planner_feature_torch.data['agent']['velocity'],
-            "/home/bydguikong/yy_ws/PlanScope/test_data/agent_velocity_data.pt"
-        )
-        save_train_data(
-            planner_feature_torch.data['agent']['shape'],
-            "/home/bydguikong/yy_ws/PlanScope/test_data/agent_shape_data.pt"
-        )
-        save_train_data(
-            planner_feature_torch.data['agent']['category'],
-            "/home/bydguikong/yy_ws/PlanScope/test_data/agent_category_data.pt"
-        )
-        save_train_data(
-            planner_feature_torch.data['agent']['valid_mask'],
-            "/home/bydguikong/yy_ws/PlanScope/test_data/agent_mask_data.pt"
-        )
+      
+        if self.save_pt_data:
+            # 保存 agent 部分
+            save_train_data(
+                planner_feature_torch.data['agent']['position'],
+                "/home/bydguikong/yy_ws/PlanScope/test_data/agent_position_data.pt"
+            )
+            save_train_data(
+                planner_feature_torch.data['agent']['heading'],
+                "/home/bydguikong/yy_ws/PlanScope/test_data/agent_heading_data.pt"
+            )
+            save_train_data(
+                planner_feature_torch.data['agent']['velocity'],
+                "/home/bydguikong/yy_ws/PlanScope/test_data/agent_velocity_data.pt"
+            )
+            save_train_data(
+                planner_feature_torch.data['agent']['shape'],
+                "/home/bydguikong/yy_ws/PlanScope/test_data/agent_shape_data.pt"
+            )
+            save_train_data(
+                planner_feature_torch.data['agent']['category'],
+                "/home/bydguikong/yy_ws/PlanScope/test_data/agent_category_data.pt"
+            )
+            save_train_data(
+                planner_feature_torch.data['agent']['valid_mask'],
+                "/home/bydguikong/yy_ws/PlanScope/test_data/agent_mask_data.pt"
+            )
 
-        # 保存 map 部分
-        save_train_data(
-            planner_feature_torch.data['map']['point_position'],
-            "/home/bydguikong/yy_ws/PlanScope/test_data/map_point_position_data.pt"
-        )
-        save_train_data(
-            planner_feature_torch.data['map']['point_vector'],
-            "/home/bydguikong/yy_ws/PlanScope/test_data/map_point_vector_data.pt"
-        )
-        save_train_data(
-            planner_feature_torch.data['map']['point_orientation'],
-            "/home/bydguikong/yy_ws/PlanScope/test_data/map_point_orientation_data.pt"
-        )
-        save_train_data(
-            planner_feature_torch.data['map']['polygon_center'],
-            "/home/bydguikong/yy_ws/PlanScope/test_data/map_polygon_center_data.pt"
-        )
-        save_train_data(
-            planner_feature_torch.data['map']['polygon_type'],
-            "/home/bydguikong/yy_ws/PlanScope/test_data/map_polygon_type_data.pt"
-        )
-        save_train_data(
-            planner_feature_torch.data['map']['polygon_on_route'],
-            "/home/bydguikong/yy_ws/PlanScope/test_data/map_polygon_on_route_data.pt"
-        )
-        save_train_data(
-            planner_feature_torch.data['map']['polygon_tl_status'],
-            "/home/bydguikong/yy_ws/PlanScope/test_data/map_polygon_tl_status_data.pt"
-        )
-        save_train_data(
-            planner_feature_torch.data['map']['polygon_has_speed_limit'],
-            "/home/bydguikong/yy_ws/PlanScope/test_data/map_polygon_has_speed_limit_data.pt"
-        )
-        save_train_data(
-            planner_feature_torch.data['map']['polygon_speed_limit'],
-            "/home/bydguikong/yy_ws/PlanScope/test_data/map_polygon_speed_limit_data.pt"
-        )
-        save_train_data(
-            planner_feature_torch.data['map']['valid_mask'],
-            "/home/bydguikong/yy_ws/PlanScope/test_data/map_mask_data.pt"
-        )
+            # 保存 map 部分
+            save_train_data(
+                planner_feature_torch.data['map']['point_position'],
+                "/home/bydguikong/yy_ws/PlanScope/test_data/map_point_position_data.pt"
+            )
+            save_train_data(
+                planner_feature_torch.data['map']['point_vector'],
+                "/home/bydguikong/yy_ws/PlanScope/test_data/map_point_vector_data.pt"
+            )
+            save_train_data(
+                planner_feature_torch.data['map']['point_orientation'],
+                "/home/bydguikong/yy_ws/PlanScope/test_data/map_point_orientation_data.pt"
+            )
+            save_train_data(
+                planner_feature_torch.data['map']['polygon_center'],
+                "/home/bydguikong/yy_ws/PlanScope/test_data/map_polygon_center_data.pt"
+            )
+            save_train_data(
+                planner_feature_torch.data['map']['polygon_type'],
+                "/home/bydguikong/yy_ws/PlanScope/test_data/map_polygon_type_data.pt"
+            )
+            save_train_data(
+                planner_feature_torch.data['map']['polygon_on_route'],
+                "/home/bydguikong/yy_ws/PlanScope/test_data/map_polygon_on_route_data.pt"
+            )
+            save_train_data(
+                planner_feature_torch.data['map']['polygon_tl_status'],
+                "/home/bydguikong/yy_ws/PlanScope/test_data/map_polygon_tl_status_data.pt"
+            )
+            save_train_data(
+                planner_feature_torch.data['map']['polygon_has_speed_limit'],
+                "/home/bydguikong/yy_ws/PlanScope/test_data/map_polygon_has_speed_limit_data.pt"
+            )
+            save_train_data(
+                planner_feature_torch.data['map']['polygon_speed_limit'],
+                "/home/bydguikong/yy_ws/PlanScope/test_data/map_polygon_speed_limit_data.pt"
+            )
+            save_train_data(
+                planner_feature_torch.data['map']['valid_mask'],
+                "/home/bydguikong/yy_ws/PlanScope/test_data/map_mask_data.pt"
+            )
 
-        # 保存 reference_line 部分
-        save_train_data(
-            planner_feature_torch.data['reference_line']['position'],
-            "/home/bydguikong/yy_ws/PlanScope/test_data/reference_line_position_data.pt"
-        )
-        save_train_data(
-            planner_feature_torch.data['reference_line']['vector'],
-            "/home/bydguikong/yy_ws/PlanScope/test_data/reference_line_vector_data.pt"
-        )
-        save_train_data(
-            planner_feature_torch.data['reference_line']['orientation'],
-            "/home/bydguikong/yy_ws/PlanScope/test_data/reference_line_orientation_data.pt"
-        )
-        save_train_data(
-            planner_feature_torch.data['reference_line']['valid_mask'],
-            "/home/bydguikong/yy_ws/PlanScope/test_data/reference_line_valid_mask_data.pt"
-        )
+            # 保存 reference_line 部分
+            save_train_data(
+                planner_feature_torch.data['reference_line']['position'],
+                "/home/bydguikong/yy_ws/PlanScope/test_data/reference_line_position_data.pt"
+            )
+            save_train_data(
+                planner_feature_torch.data['reference_line']['vector'],
+                "/home/bydguikong/yy_ws/PlanScope/test_data/reference_line_vector_data.pt"
+            )
+            save_train_data(
+                planner_feature_torch.data['reference_line']['orientation'],
+                "/home/bydguikong/yy_ws/PlanScope/test_data/reference_line_orientation_data.pt"
+            )
+            save_train_data(
+                planner_feature_torch.data['reference_line']['valid_mask'],
+                "/home/bydguikong/yy_ws/PlanScope/test_data/reference_line_valid_mask_data.pt"
+            )
 
-        # 保存 static_objects 部分
-        save_train_data(
-            planner_feature_torch.data['static_objects']['position'],
-            "/home/bydguikong/yy_ws/PlanScope/test_data/static_objects_position_data.pt"
-        )
-        save_train_data(
-            planner_feature_torch.data['static_objects']['heading'],
-            "/home/bydguikong/yy_ws/PlanScope/test_data/static_objects_heading_data.pt"
-        )
-        save_train_data(
-            planner_feature_torch.data['static_objects']['shape'],
-            "/home/bydguikong/yy_ws/PlanScope/test_data/static_objects_shape_data.pt"
-        )
-        save_train_data(
-            planner_feature_torch.data['static_objects']['category'],
-            "/home/bydguikong/yy_ws/PlanScope/test_data/static_objects_category_data.pt"
-        )
-        save_train_data(
-            planner_feature_torch.data['static_objects']['valid_mask'],
-            "/home/bydguikong/yy_ws/PlanScope/test_data/static_objects_valid_mask_data.pt"
-        )
+            # 保存 static_objects 部分
+            save_train_data(
+                planner_feature_torch.data['static_objects']['position'],
+                "/home/bydguikong/yy_ws/PlanScope/test_data/static_objects_position_data.pt"
+            )
+            save_train_data(
+                planner_feature_torch.data['static_objects']['heading'],
+                "/home/bydguikong/yy_ws/PlanScope/test_data/static_objects_heading_data.pt"
+            )
+            save_train_data(
+                planner_feature_torch.data['static_objects']['shape'],
+                "/home/bydguikong/yy_ws/PlanScope/test_data/static_objects_shape_data.pt"
+            )
+            save_train_data(
+                planner_feature_torch.data['static_objects']['category'],
+                "/home/bydguikong/yy_ws/PlanScope/test_data/static_objects_category_data.pt"
+            )
+            save_train_data(
+                planner_feature_torch.data['static_objects']['valid_mask'],
+                "/home/bydguikong/yy_ws/PlanScope/test_data/static_objects_valid_mask_data.pt"
+            )
 
-        # 保存 current_state 部分
-        save_train_data(
-            planner_feature_torch.data['current_state'],
-            "/home/bydguikong/yy_ws/PlanScope/test_data/current_state_data.pt"
-        )
+            # 保存 current_state 部分
+            save_train_data(
+                planner_feature_torch.data['current_state'],
+                "/home/bydguikong/yy_ws/PlanScope/test_data/current_state_data.pt"
+            )
         # torch.save(planner_feature.data["map"]["point_position"], "/home/bydguikong/yy_ws/PlanScope/map_data.pt")
         # print("Point Postiton: >>>>>>>>>>>>>>>>>====", planner_feature.data["map"]["point_position"])
         # print(planner_feature.data["map"]["point_position"].shape)
@@ -375,14 +379,15 @@ class ScopePlanner(AbstractPlanner):
         ]
 
         out = self._planner.forward(data)
-        save_train_data(
-            out["candidate_trajectories"],
-            "/home/bydguikong/yy_ws/PlanScope/candidate_trajectories_data.pt"
-        )
-        save_train_data(
-            out["probability"],
-            "/home/bydguikong/yy_ws/PlanScope/probability_data.pt"
-        )
+        if self.save_pt_data:
+            save_train_data(
+                out["candidate_trajectories"],
+                "/home/bydguikong/yy_ws/PlanScope/test_data/candidate_trajectories_data.pt"
+            )
+            save_train_data(
+                out["probability"],
+                "/home/bydguikong/yy_ws/PlanScope/test_data/probability_data.pt"
+            )
 
         # out = self._planner.forward(planner_feature_torch.data)
         candidate_trajectories = (
