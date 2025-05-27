@@ -1,6 +1,8 @@
 from typing import Dict, List, Set
-
+import matplotlib
+matplotlib.use("Agg")
 import matplotlib.patches as patches
+
 import matplotlib.pyplot as plt
 import numpy as np
 import shapely

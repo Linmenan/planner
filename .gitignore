@@ -161,7 +161,8 @@ cython_debug/
 wandb/
 outputs/
 # *.ckpt
-# *.pt
+*.pt
+*.zip
 # checkpoints/
 any_test.py
 exp/

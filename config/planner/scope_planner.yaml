@@ -34,7 +34,6 @@ scope_planner:
     ref_free_traj: true
     recursive_decoder: true
 
-
     feature_builder:
       _target_: src.feature_builders.scope_feature_builder.ScopeFeatureBuilder
       _convert_: "all"

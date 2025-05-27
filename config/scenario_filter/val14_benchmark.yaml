@@ -17,7 +17,7 @@ scenario_types:
 - following_lane_with_lead
 scenario_tokens:
 - e3e2933994835eba
-# - '3069f8795e1c5116' #左转后直行后右转
+- '3069f8795e1c5116' #左转后直行后右转
 - '2676de7a1f395982'
 - f12b46915ede5842
 - '443bc5caadc05ea3'
@@ -71,7 +71,7 @@ scenario_tokens:
 - c455ca6714a5529d
 - c4874465ea1f5f0d
 - f5f241207ac8528c
-# - '131e121d08bc5b5d' #拥堵，缓慢跟行
+- '131e121d08bc5b5d' #拥堵，缓慢跟行
 - '9e345f0a2740505e'
 - c09e079e5f675e68
 - afc40829c4c151e6
@@ -254,7 +254,7 @@ scenario_tokens:
 - e8fd7512fe6b5486
 - '4153b8d26d995fee'
 - ae2d9cd51ebb58aa
-# - '52e379ab3196503b' # 跟车启动
+- '52e379ab3196503b' # 跟车启动
 - e504f54a41665d9a
 - '2508702d9964588a'
 - fb12a40e998254c0
@@ -409,7 +409,7 @@ scenario_tokens:
 - c2f0546ea2565af3
 - '2afa35fd7baa53e0'
 - b5e2215e09995f3c
-# - ae68d243a14a5e73 # 直道快速行车
+- ae68d243a14a5e73 # 直道快速行车
 - '76555123d9e15f53'
 - b7ec5cdee9765f23
 - '0ef51935e41853ac'
@@ -490,7 +490,7 @@ scenario_tokens:
 - '1f463bd4f9a85923'
 - '3ecaae94fe3f5cd8'
 - ae93f01c97b95e31
-# - bd9267c026a85b24 # 右转专用道，随后左传掉头专用道
+- bd9267c026a85b24 # 右转专用道，随后左传掉头专用道
 - '0ec11905be6357bf'
 - '15455c755f3d5f8e'
 - '6d4ba74aba6d5722'
@@ -525,7 +525,7 @@ scenario_tokens:
 - e70f19d46048540a
 - '0dc096721b925852'
 - '04659d4c41935483'
-# - '9af3c5d9eadb562a' # 左转专用道
+- '9af3c5d9eadb562a' # 左转专用道
 - af1ff1ba8bfa51ee
 - '4769a4aa80eb5bfe'
 - '4f6461c570d2541d'
@@ -991,7 +991,7 @@ scenario_tokens:
 - '4274e203840a5744'
 - '9434766d819c5239'
 - '236f917924b6546a'
-# - '1f92b9e3409f52bd' # 路口红灯，静止
+- '1f92b9e3409f52bd' # 路口红灯，静止
 - e7f119f370385c70
 - '8129ef38aa0c5416'
 - '062a19468a765955'
@@ -1010,7 +1010,7 @@ scenario_tokens:
 - d2d0152ca8b45448
 - '8d3c4c8456485f02'
 - b2ed684a0dd1594e
-# - 'c8281e1e1ad454b3' #路口红灯，静止
+- 'c8281e1e1ad454b3' #路口红灯，静止
 - '90489718be785427'
 - '88cf2d1d3b705e17'
 - f0c58378b81d55c6

@@ -3,7 +3,7 @@ export PYTHONPATH=$PYTHONPATH:$(pwd)
  # @Author: CGB cai.guanbin@byd.com
  # @Date: 2025-03-17 14:00:47
  # @LastEditors: linmenan 314378011@qq.com
- # @LastEditTime: 2025-04-21 09:25:06
+ # @LastEditTime: 2025-04-23 09:39:08
  # @FilePath: /PlanScope/sim_scope.sh
  # @Description: 这是默认设置,请设置`customMade`, 打开koroFileHeader查看配置 进行设置: https://github.com/OBKoro1/koro1FileHeader/wiki/%E9%85%8D%E7%BD%AE
 ### 
@@ -37,12 +37,13 @@ python run_simulation.py \
     planner=$PLANNER \
     scenario_builder=$BUILDER \
     scenario_filter=$FILTER \
+    scenario_filter.limit_total_scenarios=1 \
     verbose=true \
     worker=ray_distributed worker.threads_per_node=1 \
     number_of_gpus_allocated_per_simulation=1.0 \
     distributed_mode='LOG_FILE_BASED' \
     experiment_uid="$PLANNER/$FILTER" \
-    planner.$PLANNER.render=true \
+    planner.$PLANNER.render=false \
     planner.$PLANNER.planner_ckpt="$CKPT_ROOT/$CKPT" \
     +planner.$PLANNER.save_dir=$VIDEO_SAVE_DIR/$CHALLENGE.norule \
     planner.$PLANNER.rule_based_evaluator=false \

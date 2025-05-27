@@ -1,21 +1,21 @@
 export PYTHONPATH=$PYTHONPATH:$(pwd)
-export NUPLAN_DATA_ROOT="/nuplan/dataset"
-export NUPLAN_MAPS_ROOT="/nuplan/dataset/maps"
-export WS="/workspace/pluto"
+export NUPLAN_DATA_ROOT="/home/bydguikong/nuplan/dataset"
+export NUPLAN_MAPS_ROOT="/home/bydguikong/nuplan/dataset/maps"
+export WS="/home/bydguikong/nuplan"
 export NUPLAN_EXP_ROOT="$WS/exp"
 
 cwd=$(pwd)
 CKPT_ROOT="$cwd/checkpoints"
 
 PLANNER=pluto_planner
-CKPT_N=pluto_full_m6
+CKPT_N=pluto_1M_aux_cil
 
 CKPT=$CKPT_N.ckpt
 # BUILDER=nuplan_mini
 # FILTER=mini_demo_scenario
 # BUILDER=nuplan_challenge
 # FILTER=random14_benchmark
-BUILDER=nuplan
+BUILDER=nuplan_mini
 FILTER=val14_benchmark
 VIDEO_SAVE_DIR=$cwd/videos/$PLANNER.$CKPT_N/$FILTER
 
@@ -29,6 +29,7 @@ python run_simulation.py \
     scenario_builder=$BUILDER \
     scenario_filter=$FILTER \
     worker=sequential \
+    number_of_gpus_allocated_per_simulation=0 \        # 全 CPU 推理；ScopePlanner 速度仍可接受
     verbose=true \
     experiment_uid="$PLANNER/$FILTER" \
     planner.$PLANNER.render=true \
@@ -38,7 +39,7 @@ python run_simulation.py \
     planner.$PLANNER.planner.use_hidden_proj=false \
     planner.$PLANNER.planner.cat_x=true \
     planner.$PLANNER.planner.ref_free_traj=true \
-    planner.$PLANNER.planner.num_modes=6
+    planner.$PLANNER.planner.num_modes=12
 
 
     # worker.threads_per_node=32 \

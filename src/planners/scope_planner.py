@@ -71,7 +71,7 @@ class ScopePlanner(AbstractPlanner):
         learning_based_score_weight: float = 0.25,
         use_prediction: bool = True,
         rule_based_evaluator: bool = True,
-        save_pt_data = False,
+        save_pt_data = True,
     ) -> None:
         """
         Initializes the ML planner class.
